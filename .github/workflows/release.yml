@@ -1,0 +1,127 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  # Release from main without pushing a tag yourself: the workflow creates the
+  # tag on the dispatched commit when it publishes the release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, vX.Y.Z (CHANGELOG.md must have its section)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, sign and publish
+    # Releases come from the public repository only: the signature identity,
+    # the build provenance and `sdw-armor upgrade` all name it.
+    if: github.repository == 'Shadow-Security-official/Shadow-Armor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the GitHub release
+      id-token: write      # Sigstore keyless signing
+      attestations: write  # SLSA build provenance
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Resolve the version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            TAG="$INPUT_VERSION"
+            [ "$GITHUB_REF" = refs/heads/main ] || { echo "::error::dispatch the release from main"; exit 1; }
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then echo "::error::$TAG already exists"; exit 1; fi
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::invalid version $TAG (vX.Y.Z)"; exit 1; }
+          grep -q "^## \[${TAG#v}\]" CHANGELOG.md || { echo "::error::CHANGELOG.md has no ${TAG#v} section"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Test
+        run: go test ./...
+      - name: Build static binaries, .deb/.rpm packages, CycloneDX SBOM, checksums
+        run: make dist VERSION="${{ steps.v.outputs.tag }}"
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign the checksums (keyless)
+        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
+      # GitHub artifact attestations need a public repository (or GitHub
+      # Enterprise Cloud): skipped, with a warning, while the repository is
+      # private. Checksums, the Sigstore signature and the SBOM file remain.
+      - name: Attestations unavailable
+        if: github.event.repository.visibility != 'public'
+        run: |
+          echo "::warning::SLSA provenance and SBOM attestations skipped (the repository is private)"
+      - name: Build provenance
+        if: github.event.repository.visibility == 'public'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            dist/sdw-armor-linux-*
+            dist/sdw-armor-darwin-*
+            dist/*.deb
+            dist/*.rpm
+            dist/sdw-armor.cdx.json
+      - name: SBOM attestation
+        if: github.event.repository.visibility == 'public'
+        uses: actions/attest-sbom@v4
+        with:
+          subject-path: |
+            dist/sdw-armor-linux-*
+            dist/sdw-armor-darwin-*
+            dist/*.deb
+            dist/*.rpm
+          sbom-path: dist/sdw-armor.cdx.json
+      - name: Release notes from CHANGELOG.md
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+          VISIBILITY: ${{ github.event.repository.visibility }}
+        run: |
+          v="${TAG#v}"
+          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ && f {exit} f' CHANGELOG.md > notes.md
+          {
+            echo
+            echo "### Verify"
+            echo
+            echo '```sh'
+            echo 'sha256sum --ignore-missing --check SHA256SUMS                  # integrity'
+            if [ "$VISIBILITY" = public ]; then
+              echo 'gh attestation verify sdw-armor-linux-amd64 \'
+              echo '  --repo Shadow-Security-official/Shadow-Armor                  # who built it (SLSA provenance)'
+            fi
+            echo 'cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \'
+            echo '  --certificate-oidc-issuer https://token.actions.githubusercontent.com \'
+            echo "  --certificate-identity-regexp '^https://github.com/Shadow-Security-official/Shadow-Armor/\.github/workflows/release\.yml@refs/(tags/v|heads/main)'"
+            echo '```'
+            echo
+            echo 'Assets: static binaries (Linux, macOS; amd64, arm64), `.deb` and `.rpm` packages, a CycloneDX SBOM'
+            if [ "$VISIBILITY" = public ]; then
+              echo '(`sdw-armor.cdx.json`, attested with the binaries), `SHA256SUMS` signed keylessly with Sigstore.'
+            else
+              echo '(`sdw-armor.cdx.json`), `SHA256SUMS` signed keylessly with Sigstore. This release was built while the'
+              echo 'repository was private, so it carries no GitHub attestation: verify it with the checksums and cosign.'
+            fi
+            echo 'The scan engine, CINC Auditor, is installed separately: `sdw-armor install-cinc` (SHA-256 verified'
+            echo 'package, asks first), or run it from its image with `--engine docker`.'
+          } >> notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            where="--target $GITHUB_SHA"    # creates the tag on this commit
+          else
+            where="--verify-tag"
+          fi
+          # shellcheck disable=SC2086
+          gh release create "$TAG" dist/* --title "Shadow-Armor $TAG" --notes-file notes.md $where

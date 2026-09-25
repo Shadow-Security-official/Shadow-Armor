@@ -1,0 +1,10 @@
+{
+  "sdw_password_min_length": 12,
+  "sdw_password_history": 4,
+  "sdw_lockout_deny_max": 10,
+  "sdw_lockout_unlock_min": 1800,
+  "sdw_inactive_days_max": 90,
+  "sdw_password_max_days": 90,
+  "sdw_shell_timeout_max": 900,
+  "sdw_ssh_idle_timeout_max": 900
+}

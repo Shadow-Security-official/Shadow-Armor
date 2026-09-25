@@ -1,0 +1,39 @@
+# .deb and .rpm packages of the release binary (built by `make packages`
+# with nfpm; not needed to use sdw-armor: the binary alone is enough).
+# CINC Auditor is not declared as a dependency: no distribution ships it.
+# Install it with `sdw-armor install-cinc` (SHA-256 verified package).
+name: sdw-armor
+arch: ${PKG_ARCH}
+platform: linux
+version: ${PKG_VERSION}
+release: 1
+section: admin
+priority: optional
+maintainer: Shadow-Security <https://github.com/Shadow-Security-official/Shadow-Armor>
+vendor: Shadow-Security
+homepage: https://github.com/Shadow-Security-official/Shadow-Armor
+license: Apache-2.0
+description: |-
+  Effective Linux compliance & hardening over CINC Auditor.
+  Audits the configuration services actually run (sshd -T, sysctl,
+  systemctl, auditctl), maps every control to CIS, ANSSI BP-028,
+  NIST 800-53/800-171, PCI DSS and DISA STIG, grades A to E with a
+  published formula, and hardens as code with a native Chef run.
+  A static binary: the profile and the cookbook are embedded.
+contents:
+  - src: dist/sdw-armor-linux-${PKG_ARCH}
+    dst: /usr/bin/sdw-armor
+    file_info:
+      mode: 0755
+  - src: LICENSE
+    dst: /usr/share/doc/sdw-armor/LICENSE
+    file_info:
+      mode: 0644
+  - src: README.md
+    dst: /usr/share/doc/sdw-armor/README.md
+    file_info:
+      mode: 0644
+  - src: SECURITY.md
+    dst: /usr/share/doc/sdw-armor/SECURITY.md
+    file_info:
+      mode: 0644

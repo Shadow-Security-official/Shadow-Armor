@@ -1,0 +1,35 @@
+# Example workflow: audit a freshly built image, publish SARIF, gate on the grade
+# and on drift against the last accepted baseline.
+name: harden-check
+on: [push]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install sdw-armor (verified) and CINC Auditor (verified package, no installer script)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE=https://github.com/Shadow-Security-official/Shadow-Armor/releases/download/v0.3.1
+          curl -fsSLO "$BASE/sdw-armor-linux-amd64"
+          curl -fsSLO "$BASE/SHA256SUMS"
+          sha256sum --ignore-missing --check SHA256SUMS
+          gh attestation verify sdw-armor-linux-amd64 --repo Shadow-Security-official/Shadow-Armor
+          sudo install -m 0755 sdw-armor-linux-amd64 /usr/local/bin/sdw-armor
+          sdw-armor install-cinc --sudo --yes
+      - name: Build and start the candidate image
+        run: |
+          docker build -t candidate .
+          docker run -d --name candidate candidate sleep infinity
+      - name: Audit
+        run: sdw-armor scan docker://candidate --inputs examples/policy-pci-dss.json -o sarif:shadow-armor.sarif -o json:scan.json -o html:scan.html --fail-under C
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: shadow-armor.sarif
+      - name: No regression against the accepted baseline
+        run: sdw-armor diff .shadow-armor/baseline.json scan.json --fail-on-regression

@@ -1,0 +1,13 @@
+# InSpec waiver file: sdw-armor scan --waivers examples/waivers.yml
+# A waived control is left out of the score and listed with its justification.
+# Once expiration_date is past, the control is evaluated again automatically.
+
+SA-02.11:
+  justification: "Docker host: IP forwarding is required by the container runtime (ticket OPS-311)"
+  expiration_date: 2027-03-31
+  run: false
+
+SA-11.01:
+  justification: "Volumes encrypted by the cloud provider (AWS EBS, KMS key alias/prod-ebs); evidence in SEC-208"
+  expiration_date: 2027-01-31
+  run: false

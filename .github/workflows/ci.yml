@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go (vet, test, lint, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: vet
+        run: go vet ./...
+      - name: test (includes Go/JS scoring parity and catalog consistency)
+        run: go test -race ./...
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.5.0
+      - name: static binaries
+        run: make dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdw-armor-dist
+          path: dist/
+
+  profile:
+    name: InSpec profile and cookbook syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: cinc-auditor check
+        run: docker run --rm -v "$PWD/profile:/profile:ro" cincproject/auditor:latest check /profile --no-color
+      - name: Ruby syntax and cookbook helper tests
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -w /src ruby:3.3-slim sh -c \
+            'for f in $(find cookbook profile -name "*.rb"); do ruby -c "$f" >/dev/null || exit 1; done; ruby cookbook/shadow_armor/test/helpers_test.rb'
+
+  e2e:
+    name: End-to-end (scan, harden, re-audit) on Ubuntu 24.04
+    needs: go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make build
+      - name: Install CINC Auditor on the runner (verified package, no installer script)
+        run: |
+          ./dist/sdw-armor install-cinc --print
+          ./dist/sdw-armor install-cinc --sudo --yes
+          ./dist/sdw-armor doctor
+      - name: Start a systemd target
+        run: |
+          cat > /tmp/Dockerfile <<'DOCKERFILE'
+          FROM ubuntu:24.04
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && apt-get install -y --no-install-recommends openssh-server sudo auditd iproute2 procps kmod \
+                systemd systemd-sysv libpam-pwquality cron curl ca-certificates openssl telnet && mkdir -p /run/sshd
+          CMD ["/sbin/init"]
+          DOCKERFILE
+          docker build -q -t sdw-target /tmp
+          docker run -d --name target --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            --tmpfs /run --tmpfs /run/lock sdw-target
+          sleep 5
+      - name: Scan (all formats)
+        run: |
+          ./dist/sdw-armor doctor docker://target
+          ./dist/sdw-armor scan docker://target --level 2 --input sdw_assume_host=true \
+            -o json:scan.json -o html:scan.html -o sarif:scan.sarif -o junit:scan.xml -o markdown:scan.md
+      - name: Scan with the Docker engine (no native engine needed)
+        run: |
+          ./dist/sdw-armor scan docker://target --engine docker --level 2 --input sdw_assume_host=true \
+            -o json:scan-docker-engine.json --format none
+          python3 - <<'PY'
+          import json
+          a = json.load(open("scan.json")); b = json.load(open("scan-docker-engine.json"))
+          assert b["engine"]["mode"] == "docker" and "@sha256:" in b["engine"]["image"], b["engine"]
+          diff = [x["id"] for x, y in zip(a["controls"], b["controls"]) if (x["status"], x.get("qualifier")) != (y["status"], y.get("qualifier"))]
+          assert not diff, "native and Docker engines disagree on " + ", ".join(diff)
+          print("native and Docker engines agree on", len(a["controls"]), "controls")
+          PY
+      - name: Harden a selection and prove it (closed loop)
+        run: |
+          # SA-06.02 and SA-06.21 must be left out by the safety guards: in this
+          # image nobody can log in with an SSH key.
+          set -o pipefail
+          ./dist/sdw-armor harden docker://target --from scan.json --input sdw_assume_host=true \
+            --rules SA-01.02,SA-03.01,SA-06.02,SA-06.04,SA-06.21,SA-08.12,SA-08.13,SA-09.02 --yes --bootstrap-cinc \
+            -o json:after.json | tee harden.log
+          grep -q "SA-06.02, SA-06.21 left out of this run" harden.log
+          ./dist/sdw-armor diff scan.json after.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-reports
+          path: |
+            scan.*
+            after.json

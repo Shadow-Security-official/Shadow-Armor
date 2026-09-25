@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+<meta name="generator" content="Shadow-Armor">
+<title>{{TITLE}}</title>
+<style>{{CSS}}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">SHADOW-ARMOR<small>effective Linux compliance &amp; hardening</small></div>
+    <button class="toggle" id="theme" type="button" aria-label="Toggle dark mode">◐ theme</button>
+    <div class="meta" id="meta"></div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="panel hero" aria-label="Overall grade">
+    <div class="grade" id="grade">?</div>
+    <div>
+      <div class="scoreline" id="scoreline"></div>
+      <ul class="caps" id="caps"></ul>
+      <div class="counts" id="counts"></div>
+    </div>
+    <div class="radar" id="radar" aria-label="Pillar scores"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Standard lens</h2>
+    <div class="lens" id="lens" role="group" aria-label="Score through one standard"></div>
+    <p class="small" id="lensnote"></p>
+  </section>
+
+  <section class="panel">
+    <h2>12 hardening pillars</h2>
+    <div class="pillars" id="pillars"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Controls</h2>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search id, title, evidence, mapping (e.g. R28, AC-17, 8.3.6)…" aria-label="Search">
+      <div role="group" aria-label="Status" id="statusf"></div>
+      <select id="sevf" aria-label="Severity">
+        <option value="">any severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option>
+      </select>
+      <select id="pillarf" aria-label="Pillar"><option value="">all pillars</option></select>
+      <label class="small"><input type="checkbox" id="autof"> auto-fixable only</label>
+    </div>
+    <div id="controls"></div>
+  </section>
+
+  <section class="panel">
+    <h2>How the grade is computed</h2>
+    <div class="formula">weight(severity)   critical 10 · high 5 · medium 3 · low 1 · info 0
+evaluated          pass, fail and error controls (not-applicable and waived are left out; an error counts as a failure)
+score              100 × Σ weight(pass) / Σ weight(evaluated)
+raw grade          A ≥ 90 · B ≥ 80 · C ≥ 65 · D ≥ 50 · E below
+caps               a critical control failing → at most D
+                   an A that rests on runtime-only passes → B (it rests on them when it would not stay A
+                   if every runtime-only pass failed after a reboot)
+grade              the worse of the raw grade and every cap
+
+Qualified verdicts say what a PASS proves, in three columns: running now, on disk, after a reboot.
+PASS·durable      compliant now, and the persisted state keeps it after a reboot (or a real reboot proved it)
+PASS·runtime-only compliant now, but the persisted state contradicts it or nothing on disk proves it
+FAIL·pending      wrong now, but the persisted state is already compliant: a reboot or reload is pending</div>
+    <p class="small">The CLI computes the same numbers with the same formula (internal/score/score.go and this page's score.js are tested for parity).</p>
+  </section>
+</main>
+<footer class="wrap" id="footer"></footer>
+<script type="application/json" id="sdw-data">{{DATA}}</script>
+<script>{{SCORE}}</script>
+<script>{{APP}}</script>
+</body>
+</html>
