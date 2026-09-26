@@ -6,6 +6,9 @@ Shadow-Armor audits the configuration your services *actually run* (`sshd -T`, `
 
 🇫🇷 [Lire en français](README.fr.md)
 
+> [!IMPORTANT]
+> **Deliberately draconian.** Shadow-Armor scores are deliberately strict. Reaching the top grade on a real production system is close to impossible. The point of this grading is not to penalise an architecture but to give teams a clear grid of improvements to target their security priorities. A deviation you accept on purpose (a service account that cannot type a password, for instance) goes in a [waiver file](#tuning-inputs-and-waivers) with its justification: it leaves the score and stays listed in the report.
+
 <p align="center"><img src="docs/img/home.png" alt="sdw-armor: the shield emblem and SHADOW-ARMOR in relief block letters, violet to cyan, above the command list" width="880"></p>
 
 <p align="center"><img src="docs/img/scan.gif" alt="A live scan over SSH: steps ticking off, a spinner and a shimmering verb following the pillar being audited, a progress line with running pass and fail counts, then the result screen" width="720"></p>
@@ -47,8 +50,10 @@ Shadow-Armor audits the configuration your services *actually run* (`sshd -T`, `
 
 ### 1. Download
 
+[armor.shadow-security.fr](https://armor.shadow-security.fr) writes the whole command for your system, architecture and version: download, SHA-256 check, install. By hand:
+
 ```sh
-VERSION=v0.3.1   # see https://github.com/Shadow-Security-official/Shadow-Armor/releases
+VERSION=v0.4.0   # see https://github.com/Shadow-Security-official/Shadow-Armor/releases
 ARCH=amd64       # or arm64
 BASE=https://github.com/Shadow-Security-official/Shadow-Armor/releases/download/$VERSION
 curl -fsSLO "$BASE/sdw-armor-linux-$ARCH"

@@ -3,7 +3,7 @@ package version
 
 var (
 	// Version of sdw-armor (set by the release build).
-	Version = "0.3.1-dev"
+	Version = "0.4.0-dev"
 	// Commit the binary was built from.
 	Commit = ""
 	// Date of the build (RFC 3339).

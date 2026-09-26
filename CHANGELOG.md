@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-26
+
+Install page, and a clear word on how strict the grading is.
+
+### Added
+
+- Install page, [armor.shadow-security.fr](https://armor.shadow-security.fr): pick a published release, a system (Debian and Ubuntu, RHEL family, other Linux, macOS), an architecture and a format; it writes one command for bash, zsh or sh that downloads the file, checks its SHA-256 (the digest GitHub publishes for the asset, or the release's `SHA256SUMS`; optionally the Sigstore signature with cosign) and installs it. Nothing is piped into a shell, and a checksum mismatch stops the command before the install. The README and `docs/INSTALL.md` point to it.
+
+### Changed
+
+- README (English and French): a note at the top says the scores are deliberately strict, that the top grade is close to impossible on a real production system, and that the grading is a clear grid of improvements to target security priorities, not a sanction of an architecture; accepted deviations are declared in a waiver file.
+
 ## [0.3.1] - 2026-09-25
 
 First public release.

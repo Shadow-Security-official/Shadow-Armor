@@ -6,6 +6,9 @@ Shadow-Armor audite la configuration que vos services *exécutent réellement* (
 
 🇬🇧 [English version](README.md)
 
+> [!IMPORTANT]
+> **Volontairement draconien.** Les scores Shadow-Armor sont volontairement stricts. Atteindre la note maximale sur une production réelle est quasiment impossible. L'enjeu de cette notation n'est pas de sanctionner une architecture mais de fournir aux équipes une grille d'améliorations claire pour cibler les priorités de sécurité. Un écart assumé (un compte de service qui ne peut pas saisir de mot de passe, par exemple) se déclare dans un [fichier de dérogations](examples/waivers.yml) avec sa justification : il sort de la note et reste listé dans le rapport.
+
 <p align="center"><img src="docs/img/home.png" alt="sdw-armor : l'écusson et SHADOW-ARMOR en grandes lettres en relief, du violet au cyan, au-dessus de la liste des commandes" width="880"></p>
 
 <p align="center"><img src="docs/img/scan.gif" alt="Un scan en direct par SSH : les étapes se cochent, un spinner et un verbe scintillant suivent le pilier audité, une ligne de progression avec les réussites et échecs au fil de l'eau, puis l'écran de résultat" width="720"></p>
@@ -45,9 +48,11 @@ Shadow-Armor audite la configuration que vos services *exécutent réellement* (
 
 ## Démarrage rapide
 
+[armor.shadow-security.fr](https://armor.shadow-security.fr) écrit la commande complète pour votre système, votre architecture et la version voulue : téléchargement, vérification SHA-256, installation. À la main :
+
 ```sh
 # 1. Télécharger (paquets .deb et .rpm aussi publiés : docs/INSTALL.md)
-VERSION=v0.3.1 ; ARCH=amd64
+VERSION=v0.4.0 ; ARCH=amd64
 BASE=https://github.com/Shadow-Security-official/Shadow-Armor/releases/download/$VERSION
 curl -fsSLO "$BASE/sdw-armor-linux-$ARCH"
 curl -fsSLO "$BASE/SHA256SUMS"

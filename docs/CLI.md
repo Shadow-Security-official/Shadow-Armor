@@ -120,7 +120,7 @@ sdw-armor version
 ```sh
 sdw-armor update                            # is a newer release published? installs nothing
 sudo sdw-armor upgrade                      # download, verify and install the latest release
-sudo sdw-armor upgrade --version v0.3.1     # a given release (going back included)
+sudo sdw-armor upgrade --version v0.4.0     # a given release (going back included)
 sudo sdw-armor upgrade --strict             # refuse unless cosign or gh verified who built it
 ```
 
