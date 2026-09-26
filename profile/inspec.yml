@@ -3,8 +3,8 @@ title: Shadow-Armor - effective Linux compliance & hardening
 maintainer: Shadow Security
 copyright: Shadow Security
 license: Apache-2.0
-summary: Audits the configuration Linux services actually run (sshd -T, sysctl, systemctl, auditctl), mapped to CIS, ANSSI BP-028, NIST, PCI-DSS and DISA STIG, organised in 12 hardening pillars.
-version: 0.4.0
+summary: Audits the configuration Linux services actually run (sshd -T, sysctl, systemctl, auditctl, nginx -T, pg_hba_file_rules...), mapped to CIS, ANSSI BP-028, NIST, PCI-DSS and DISA STIG, organised in 15 hardening pillars.
+version: 0.5.0
 inspec_version: ">= 5.0"
 supports:
   - platform-family: linux

@@ -98,7 +98,9 @@
     var sum = one(inl, weights);
     sum.lens = lens;
     sum.pillars = [];
-    for (var id = 1; id <= 12; id++) {
+    var last = 0;
+    inl.forEach(function (c) { if (c.pillar > last) last = c.pillar; });
+    for (var id = 1; id <= last; id++) {
       var sub = inl.filter(function (c) { return c.pillar === id; });
       if (!sub.length) continue;
       var ps = one(sub, weights);

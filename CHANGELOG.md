@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-26
+
+Three new pillars: web services and TLS, databases, hardware and firmware. 35 controls, 197 in all.
+
+### Added
+
+- Pillar 13, **Web services & TLS** (13 controls). nginx through `nginx -T`, Apache through its include tree and run settings (`DUMP_INCLUDES`, `DUMP_RUN_CFG`), the HAProxy files the running process was given, Caddy through `caddy adapt`, lighttpd through `lighttpd -p`, Tomcat through the `server.xml` of each running instance: version banners, directory listing, TLS 1.2 floor (the default of each server version counts, and the system OpenSSL floor when the list is left at its default), root workers (configured and running), Apache TRACE, the HAProxy statistics page, the Caddy admin API, the Tomcat shutdown port and manager applications. Every local port that completes a TLS handshake is also probed from the target with `openssl s_client`, as a client sees it: TLS 1.0/1.1 refused, certificate valid for at least `sdw_tls_min_days` days, key size, HSTS.
+- Pillar 14, **Databases** (12 controls). PostgreSQL (`pg_hba_file_rules`, `pg_settings` through psql as its OS user), MySQL and MariaDB (accounts, global variables, and `mysqld --verbose --help` for what the next start applies), Redis and Valkey, MongoDB, Memcached, Elasticsearch and OpenSearch: authentication everywhere, checked in the configuration and by an unauthenticated request; SCRAM for PostgreSQL; TLS for servers reachable over the network; no remote administrator; `local_infile` and `secure_file_priv`; dangerous Redis commands; Memcached UDP; MongoDB server-side JavaScript; no server running as root; private data directories. A server that runs but cannot be queried fails.
+- Pillar 15, **Hardware & firmware** (10 controls): CPU flaw mitigations and the boot parameters that disable them, SMT where flaws require it, microcode packages, IOMMU, Thunderbolt security level, FireWire modules (fixed by `harden`), TPM 2.0, the BMC (IPMI cipher suite 0 and NONE authentication), pending firmware updates (fwupd), USBGuard. Controls that only mean something on physical hardware are not applicable in a virtual machine.
+- Inputs `sdw_tls_min_days`, `sdw_tls_min_rsa_bits`, `sdw_hsts_min_age`, `sdw_postgres_os_user`, `sdw_mysql_client_options`.
+- Unit tests of the profile's parsers (`ruby profile/test/parse_test.rb`), on outputs captured from nginx, PostgreSQL, MySQL and MariaDB; run in CI.
+
+### Changed
+
+- The score, the report (radar, pillar cards) and the CLI follow the pillars of the catalog instead of a fixed twelve.
+- A control that is not applicable for several reasons reports the first one: a host control scanned inside a container says so, instead of a later condition.
+
 ## [0.4.0] - 2026-09-26
 
 Install page, and a clear word on how strict the grading is.

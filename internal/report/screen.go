@@ -335,8 +335,8 @@ func (s *screen) pillars() {
 		return
 	}
 	note := ""
-	if len(sum.Pillars) < 12 {
-		note = fmt.Sprintf("%d of 12 in this selection", len(sum.Pillars))
+	if total := len(s.r.Pillars); len(sum.Pillars) < total {
+		note = fmt.Sprintf("%d of %d in this selection", len(sum.Pillars), total)
 	}
 	s.section("PILLARS", note)
 	titles := map[int]string{}

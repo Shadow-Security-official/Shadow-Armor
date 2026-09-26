@@ -21,7 +21,7 @@ func load(t *testing.T) *catalog.Catalog {
 }
 
 var (
-	idRe      = regexp.MustCompile(`^SA-(0[1-9]|1[0-2])\.\d{2}$`)
+	idRe      = regexp.MustCompile(`^SA-(0[1-9]|1\d)\.\d{2}$`)
 	nistRe    = regexp.MustCompile(`^[A-Z]{2}-\d{1,2}(\(\d{1,2}\))*(\([a-z]\))?$`)
 	nist171Re = regexp.MustCompile(`^3\.\d{1,2}\.\d{1,2}$`)
 	pciRe     = regexp.MustCompile(`^\d{1,2}(\.\d{1,2}){1,3}$`)
@@ -30,12 +30,17 @@ var (
 	cisRe     = regexp.MustCompile(`^\d{1,2}\.\d{1,2}$`)
 )
 
-// Every control: well-formed id, pillar 1-12, known severity, level 1-2,
+// Every control: well-formed id, a pillar of the catalog, known severity, level 1-2,
 // at least one mapping, a rationale, a probe description, a remediation.
 func TestCatalogIntegrity(t *testing.T) {
 	c := load(t)
-	if len(c.Pillars) != 12 {
-		t.Fatalf("want 12 pillars, got %d", len(c.Pillars))
+	if len(c.Pillars) < 15 {
+		t.Fatalf("want at least the 15 hardening pillars, got %d", len(c.Pillars))
+	}
+	for i, p := range c.Pillars {
+		if p.ID != i+1 || p.Key == "" || p.Title == "" || p.TitleFR == "" {
+			t.Errorf("pillar %d: id, key and titles must be set, ids in order", i+1)
+		}
 	}
 	perPillar := map[int]int{}
 	for _, ctl := range c.Controls {
@@ -93,8 +98,8 @@ func TestCatalogIntegrity(t *testing.T) {
 		check("ANSSI", anssiRe, ctl.Map.ANSSI)
 		check("CIS Controls", cisRe, ctl.Map.CIS)
 	}
-	for id := 1; id <= 12; id++ {
-		if perPillar[id] == 0 {
+	for _, p := range c.Pillars {
+		if id := p.ID; perPillar[id] == 0 {
 			t.Errorf("pillar %d has no control", id)
 		}
 	}

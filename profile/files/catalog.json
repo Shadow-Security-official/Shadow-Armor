@@ -85,6 +85,27 @@
       "title": "Crypto policy, FIDO & MFA",
       "title_fr": "Instaurez des politiques crypto / FIDO / MFA par OTP",
       "summary": "Strong algorithms negotiated by the real libraries, post-quantum readiness, and a second factor (OTP or FIDO2) for remote and privileged access."
+    },
+    {
+      "id": 13,
+      "key": "web",
+      "title": "Web services & TLS",
+      "title_fr": "Sécurisez vos services web et vos certificats TLS",
+      "summary": "Web servers and reverse proxies read from the configuration they resolve, and every local TLS endpoint probed like a client: no version banner or listing, no legacy TLS, no root worker, exposed admin interface or default secret, sound certificates."
+    },
+    {
+      "id": 14,
+      "key": "databases",
+      "title": "Databases",
+      "title_fr": "Protégez l'accès et la configuration de vos bases de données",
+      "summary": "Database servers queried the way they apply their settings: authentication everywhere, strong password hashing, encrypted network access, no remote administrator, dangerous features off, no root process, private data directories."
+    },
+    {
+      "id": 15,
+      "key": "hardware",
+      "title": "Hardware & firmware",
+      "title_fr": "Maîtrisez le matériel, le microcode et le firmware",
+      "summary": "What sits under the kernel: CPU flaw mitigations and SMT, microcode, the IOMMU and DMA-capable ports, the TPM, the BMC, pending firmware updates and the USB device policy."
     }
   ],
   "standards": {
@@ -360,6 +381,31 @@
         "amzn 2023": "2029-06-30"
       },
       "desc": "End of standard support per 'id version' (from /etc/os-release). Override when you have extended support."
+    },
+    {
+      "name": "sdw_tls_min_days",
+      "value": 30,
+      "desc": "Minimum number of days a certificate served by a local TLS endpoint must remain valid."
+    },
+    {
+      "name": "sdw_tls_min_rsa_bits",
+      "value": 2048,
+      "desc": "Minimum RSA/DSA key size of certificates served by local TLS endpoints (EC keys need 256 bits)."
+    },
+    {
+      "name": "sdw_hsts_min_age",
+      "value": 15768000,
+      "desc": "Minimum Strict-Transport-Security max-age, in seconds, of HTTPS endpoints (15768000 = 6 months)."
+    },
+    {
+      "name": "sdw_postgres_os_user",
+      "value": "postgres",
+      "desc": "OS account that runs psql to read PostgreSQL settings (peer authentication)."
+    },
+    {
+      "name": "sdw_mysql_client_options",
+      "value": "",
+      "desc": "Extra options for the mysql/mariadb client when root cannot log in through the socket, e.g. --defaults-extra-file=/root/.sdw-armor.cnf (a read-only account is enough)."
     }
   ],
   "controls": [
@@ -5547,6 +5593,864 @@
       },
       "scope": "host",
       "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-13.01",
+      "title": "Web servers do not disclose their version",
+      "pillar": 13,
+      "severity": "low",
+      "level": 1,
+      "rationale": "A version in the Server header and on error pages lets an attacker match the server to published vulnerabilities without probing it.",
+      "check": "nginx: `server_tokens` is off everywhere in the tree resolved by `nginx -T` (http, server and location levels). Apache: `ServerTokens Prod` and `ServerSignature Off` in the effective include tree (DUMP_INCLUDES). lighttpd: `server.tag` set, without a version. A web server whose configuration cannot be read fails.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "NGINX: Ensure server_tokens directive is set to `off`; Apache: Ensure ServerTokens is Set to 'Prod' or 'ProductOnly'",
+        "anssi": ["R79"],
+        "nist": ["CM-6", "SI-11"],
+        "nist171": ["3.4.2"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000205-GPOS-00083"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Hide the server version from headers and error pages.",
+        "manual": "nginx: `server_tokens off;` in the http block and no `server_tokens on` below it, then `nginx -t && systemctl reload nginx`. Apache: `ServerTokens Prod` and `ServerSignature Off` (Debian/Ubuntu: /etc/apache2/conf-available/security.conf; RHEL-family: a file in /etc/httpd/conf.d), then `apachectl configtest` and reload. lighttpd: `server.tag = \"\"`. Web server configurations are layered by hand, so Shadow-Armor does not rewrite them."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.02",
+      "title": "Web servers do not list directory contents",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "An automatic index exposes every file of a directory, including backups, dumps and keys nobody meant to publish.",
+      "check": "nginx: no `autoindex on` in effect in any server or location. Apache (when mod_autoindex is loaded): no `Options Indexes` or `+Indexes` in the global context, a virtual host, a <Directory> or a <Location> section. lighttpd: `server.dir-listing` and `dir-listing.activate` are not enabled.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "Apache: Ensure the Autoindex Module Is Disabled",
+        "anssi": ["R63"],
+        "nist": ["CM-7", "AC-3"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Turn automatic directory indexes off.",
+        "manual": "nginx: remove `autoindex on;` (or set `autoindex off;`). Apache: replace `Options Indexes` with `Options -Indexes`, or disable the module when nothing needs it (`a2dismod autoindex` on Debian/Ubuntu, comment the LoadModule line in /etc/httpd/conf.modules.d on RHEL-family). lighttpd: `server.dir-listing = \"disable\"`. Reload the server after `nginx -t` / `apachectl configtest`."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.03",
+      "title": "Web servers and proxies only enable TLS 1.2 and later",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "SSLv3, TLS 1.0 and TLS 1.1 rely on broken constructions (CBC padding oracles, SHA-1 and MD5 in the handshake) and are prohibited by PCI DSS and the ANSSI TLS guide.",
+      "check": "nginx: `ssl_protocols` of every server with TLS, inherited from http, or the default of the installed nginx when unset (TLS 1.0 and 1.1 before 1.23.4). Apache (mod_ssl loaded): `SSLProtocol` globally and in each virtual host, default `all -SSLv3`. HAProxy: `ssl-min-ver`, `no-tlsv10`/`no-tlsv11` on `bind ... ssl` lines or in `ssl-default-bind-options`, default TLS 1.2 from 2.2. None enables SSLv3, TLS 1.0 or TLS 1.1. A server that keeps its default list passes when the system OpenSSL configuration already sets TLS 1.2 as the floor (MinProtocol in openssl.cnf, the RHEL-family crypto policy).",
+      "map": {
+        "cis": ["3.10"],
+        "cis_benchmark": "NGINX: Ensure only modern TLS protocols are used",
+        "anssi": ["R79"],
+        "nist": ["SC-8", "SC-8(1)", "SC-13"],
+        "nist171": ["3.13.8", "3.13.11"],
+        "pci": ["4.2.1", "2.2.7"],
+        "stig": ["SRG-OS-000423-GPOS-00187", "SRG-OS-000424-GPOS-00188"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Restrict TLS to versions 1.2 and 1.3.",
+        "manual": "nginx: `ssl_protocols TLSv1.2 TLSv1.3;` in the http block (and in any server that overrides it). Apache: `SSLProtocol -all +TLSv1.2 +TLSv1.3`. HAProxy: `ssl-default-bind-options ssl-min-ver TLSv1.2` in the global section. Validate (`nginx -t`, `apachectl configtest`, `haproxy -c -f <cfg>`) and reload."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.04",
+      "title": "Web servers do not serve requests as root",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "A request-serving process running as root turns any code execution flaw in the server, a module or an application into a full host compromise.",
+      "check": "Configuration: nginx `user`, Apache `User` (DUMP_RUN_CFG), HAProxy `user`/`uid` and lighttpd `server.username` are not root. Now: nginx workers, Apache children, HAProxy, Caddy, lighttpd and Tomcat's JVM do not run as uid 0 (the nginx and Apache master process may, to bind low ports).",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "NGINX: Ensure that NGINX is run using a non-privileged, dedicated service account",
+        "anssi": ["R35", "R64"],
+        "nist": ["AC-6", "CM-7"],
+        "nist171": ["3.1.5", "3.1.7"],
+        "pci": ["7.2.5", "2.2.6"],
+        "stig": ["SRG-OS-000326-GPOS-00126"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Run request-serving processes under a dedicated unprivileged account.",
+        "manual": "nginx: `user www-data;` (Debian/Ubuntu) or `user nginx;` (RHEL-family). Apache: `User`/`Group` set to www-data or apache. HAProxy: `user haproxy` and `group haproxy` in the global section. Caddy, lighttpd, Tomcat: run the service as its own account (`User=` in the systemd unit, `server.username` for lighttpd) and grant `CAP_NET_BIND_SERVICE` when it binds a port below 1024. Restart the service."
+      },
+      "scope": "any",
+      "evidence": ["config", "runtime"]
+    },
+    {
+      "id": "SA-13.05",
+      "title": "Apache refuses TRACE requests",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "TRACE echoes the request back, headers included: with a script injection it lets an attacker read cookies marked HttpOnly (cross-site tracing). httpd answers it unless told otherwise.",
+      "check": "`TraceEnable Off` in the effective Apache configuration, globally and in every virtual host (httpd's default is On). Not applicable without Apache.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "Apache: Ensure the TRACE HTTP Request Method Is Disabled",
+        "anssi": ["R63"],
+        "nist": ["CM-7"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable the TRACE method.",
+        "manual": "Set `TraceEnable Off` in the server configuration (Debian/Ubuntu: /etc/apache2/conf-available/security.conf; RHEL-family: a file in /etc/httpd/conf.d) and remove any `TraceEnable On` from virtual hosts, then `apachectl configtest` and reload."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.06",
+      "title": "The HAProxy statistics page requires authentication",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "The statistics page maps every backend and server, and with `stats admin` it can drain or disable them: open, it is a reconnaissance and denial-of-service handle.",
+      "check": "Every frontend, listen, backend or defaults section of the configuration the running HAProxy was given that enables statistics (`stats enable` or `stats uri`) also sets `stats auth` or an `http-request auth` rule. Not applicable without HAProxy.",
+      "map": {
+        "cis": ["16.7"],
+        "anssi": ["R63", "R79"],
+        "nist": ["AC-3", "IA-2"],
+        "nist171": ["3.5.2"],
+        "pci": ["8.3.1"],
+        "stig": ["SRG-OS-000080-GPOS-00048"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Protect the statistics page with credentials, or remove it.",
+        "manual": "In the section that serves statistics add `stats auth <user>:<strong password>` (and `stats hide-version`), or bind that section to 127.0.0.1 and reach it through SSH; remove `stats admin` when nobody operates backends from the page. Validate with `haproxy -c -f /etc/haproxy/haproxy.cfg` and reload."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.07",
+      "title": "Caddy's admin API only listens on the loopback",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "Caddy's admin API reloads the whole configuration without authentication: reachable from the network, it lets anyone turn the server into an open proxy or serve their own content.",
+      "check": "The configuration of the running Caddy, adapted to JSON with `caddy adapt`: `admin.disabled` is true, or `admin.listen` is a Unix socket, localhost, 127.0.0.1 or ::1 (default localhost:2019). Not applicable without Caddy.",
+      "map": {
+        "cis": ["4.6"],
+        "anssi": ["R63", "R80"],
+        "nist": ["AC-3", "CM-7", "SC-7"],
+        "nist171": ["3.4.7"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000297-GPOS-00115"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Keep the admin endpoint local (or disable it).",
+        "manual": "In the Caddyfile global options use `admin localhost:2019` (or `admin unix//run/caddy/admin.sock`, or `admin off` when you never reload through the API), then `caddy validate` and restart."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.08",
+      "title": "Tomcat's shutdown port is disabled or uses a secret command",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "Any local user or process that can reach Tomcat's shutdown port and sends the well-known word SHUTDOWN stops the server.",
+      "check": "In conf/server.xml of every Tomcat instance (the catalina.base of each running one, else the packaged instances under /var/lib/tomcat* and /usr/share/tomcat*): `<Server port=\"-1\">`, or a `shutdown` attribute other than the default SHUTDOWN. Not applicable without a Tomcat instance.",
+      "map": {
+        "cis": ["4.7"],
+        "cis_benchmark": "Tomcat: Disable the Shutdown port",
+        "anssi": ["R51"],
+        "nist": ["CM-6", "AC-3"],
+        "nist171": ["3.4.2"],
+        "pci": ["2.2.2"],
+        "stig": ["SRG-OS-000480-GPOS-00227"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable the shutdown port.",
+        "manual": "In conf/server.xml set `<Server port=\"-1\" shutdown=\"SHUTDOWN\">` (the service manager stops Tomcat with a signal), or keep the port with a long random `shutdown` value readable by the Tomcat account only. Restart Tomcat."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-13.09",
+      "title": "Tomcat's manager applications are not deployed",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "The manager and host-manager applications deploy code over HTTP: one weak or leaked password there is remote code execution.",
+      "check": "No webapps/manager or webapps/host-manager directory, and no conf/Catalina/localhost/manager.xml or host-manager.xml context, in any Tomcat instance (running, else packaged). Not applicable without a Tomcat instance.",
+      "map": {
+        "cis": ["4.8"],
+        "anssi": ["R58", "R63"],
+        "nist": ["CM-7"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Remove the manager and host-manager applications.",
+        "manual": "Delete webapps/manager, webapps/host-manager and their context files under conf/Catalina/localhost (or uninstall the tomcat-admin / tomcat-admin-webapps package), then restart Tomcat. Deploy through your pipeline instead."
+      },
+      "scope": "any",
+      "evidence": ["filesystem"]
+    },
+    {
+      "id": "SA-13.10",
+      "title": "Local TLS endpoints refuse TLS 1.0 and 1.1",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "What a client can negotiate is the final word on TLS: it covers every service (mail, LDAP, databases, applications embedding their own stack), not only the web servers Shadow-Armor can parse.",
+      "check": "Every listening TCP port that completes a TLS handshake, probed from the target with `openssl s_client`, refuses a TLS 1.0 and a TLS 1.1 handshake (tried at SECLEVEL=0 so the client never refuses first). Not applicable without openssl on the target or without a TLS endpoint.",
+      "map": {
+        "cis": ["3.10"],
+        "anssi": ["R79"],
+        "nist": ["SC-8(1)", "SC-13"],
+        "nist171": ["3.13.8"],
+        "pci": ["4.2.1"],
+        "stig": ["SRG-OS-000423-GPOS-00187"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Configure each TLS service for TLS 1.2 and later.",
+        "manual": "Find the service behind each reported port (`ss -ltnp`), set its minimum protocol to TLS 1.2 (web servers: see SA-13.03; Postfix: `smtpd_tls_mandatory_protocols = >=TLSv1.2`; Dovecot: `ssl_min_protocol = TLSv1.2`; Java: `jdk.tls.disabledAlgorithms`) and restart it. On RHEL-family the DEFAULT crypto policy already does it for services that follow it."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-13.11",
+      "title": "Certificates of local TLS endpoints are not about to expire",
+      "pillar": 13,
+      "severity": "high",
+      "level": 1,
+      "rationale": "An expired certificate breaks clients and trains users to click through warnings; renewal that fails silently is a common cause of outages.",
+      "check": "The certificate each local TLS endpoint presents is valid for at least {{sdw_tls_min_days}} more days (openssl x509 -enddate). Not applicable without openssl on the target or without a TLS endpoint.",
+      "map": {
+        "cis": ["3.10"],
+        "nist": ["SC-12", "SC-17"],
+        "nist171": ["3.13.10"],
+        "pci": ["4.2.1", "4.2.1.1"],
+        "stig": ["SRG-OS-000066-GPOS-00034"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Renew the certificate and automate renewal.",
+        "manual": "Renew the certificate (ACME client such as certbot, or your internal PKI), reload the service, and make renewal automatic with an alert on failure (systemd timer or cron plus monitoring of the expiry date)."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-13.12",
+      "title": "Certificates of local TLS endpoints use strong keys",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "A short RSA key can be factored and lets an attacker impersonate the service or, without forward secrecy, decrypt recorded traffic.",
+      "check": "The public key of each presented certificate is RSA or DSA of at least {{sdw_tls_min_rsa_bits}} bits, or EC of at least 256 bits. Not applicable without openssl on the target or without a TLS endpoint.",
+      "map": {
+        "cis": ["3.10"],
+        "anssi": ["R79"],
+        "nist": ["SC-12", "SC-13"],
+        "nist171": ["3.13.11"],
+        "pci": ["4.2.1"],
+        "stig": ["SRG-OS-000478-GPOS-00223"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Reissue the certificate with a stronger key.",
+        "manual": "Generate a new key (`openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256` or RSA 3072), have the certificate reissued for it, deploy both and reload the service."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-13.13",
+      "title": "HTTPS endpoints send a long-lived HSTS header",
+      "pillar": 13,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "Without Strict-Transport-Security a browser tries plain HTTP first, where an attacker on the path can strip TLS away (SSL stripping).",
+      "check": "Each local TLS endpoint that answers HTTP returns Strict-Transport-Security with a max-age of at least {{sdw_hsts_min_age}} seconds to `HEAD /`. Not applicable without openssl on the target or without a TLS endpoint.",
+      "map": {
+        "cis": ["3.10"],
+        "cis_benchmark": "NGINX: Ensure HTTP Strict Transport Security (HSTS) is enabled",
+        "nist": ["SC-8", "SC-23"],
+        "nist171": ["3.13.15"],
+        "pci": ["4.2.1"],
+        "stig": ["SRG-OS-000423-GPOS-00187"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Send HSTS on every HTTPS response.",
+        "manual": "nginx: `add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;` in each TLS server. Apache (mod_headers): `Header always set Strict-Transport-Security \"max-age=31536000; includeSubDomains\"`. HAProxy: `http-response set-header Strict-Transport-Security \"max-age=31536000\"`. Caddy: `header Strict-Transport-Security \"max-age=31536000\"`. Reload the server."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-14.01",
+      "title": "Database servers require authentication",
+      "pillar": 14,
+      "severity": "critical",
+      "level": 1,
+      "rationale": "A database that answers without credentials hands its data, and often code execution on the host (COPY PROGRAM, MODULE LOAD, scripting), to anyone who reaches it; unauthenticated Redis, MongoDB and Elasticsearch are mass-scanned and ransomed within hours.",
+      "check": "Configuration: no `trust` rule in PostgreSQL's pg_hba_file_rules; no MySQL/MariaDB account without a password (socket-authenticated and locked accounts aside) and no anonymous account; Redis/Valkey `requirepass` or a default user with a password; MongoDB `security.authorization: enabled` or `--auth`; Memcached reachable beyond the loopback only with SASL (-S); Elasticsearch/OpenSearch security not disabled. Now: Redis/Valkey refuse PING, MongoDB refuses listDatabases and Elasticsearch/OpenSearch refuse GET / without credentials. A server that runs but cannot be queried fails.",
+      "map": {
+        "cis": ["3.3", "4.7"],
+        "cis_benchmark": "MySQL: Ensure No Anonymous Accounts Exist",
+        "anssi": ["R51", "R79"],
+        "nist": ["IA-2", "AC-3", "IA-5"],
+        "nist171": ["3.5.1", "3.5.2"],
+        "pci": ["8.3.1", "2.2.2"],
+        "stig": ["SRG-OS-000104-GPOS-00051", "SRG-OS-000080-GPOS-00048"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Require credentials on every database server.",
+        "manual": "PostgreSQL: replace `trust` in pg_hba.conf with `scram-sha-256` (or `peer` for local sockets) and `SELECT pg_reload_conf()`. MySQL/MariaDB: `DROP USER ''@'<host>'` for anonymous accounts, set a password or `IDENTIFIED VIA unix_socket` for the others (`mysql_secure_installation` does both). Redis/Valkey: `requirepass` or an ACL default user with a password (`user default on >secret ~* +@all`). MongoDB: create an admin user, then `security.authorization: enabled` and restart. Memcached: bind it to 127.0.0.1 (`-l 127.0.0.1`) or enable SASL. Elasticsearch: `xpack.security.enabled: true`."
+      },
+      "scope": "any",
+      "evidence": ["config", "runtime"]
+    },
+    {
+      "id": "SA-14.02",
+      "title": "PostgreSQL stores and checks passwords with SCRAM",
+      "pillar": 14,
+      "severity": "high",
+      "level": 1,
+      "rationale": "MD5 password hashes are replayable in the md5 exchange and crackable offline; the `password` method sends the password in clear text. SCRAM-SHA-256 fixes both.",
+      "check": "`password_encryption = scram-sha-256` (pg_settings) and no `md5` or `password` method in pg_hba_file_rules. Not applicable without a running PostgreSQL.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "PostgreSQL: Ensure login via \"host\" TCP/IP Socket is configured correctly",
+        "anssi": ["R68"],
+        "nist": ["IA-5(1)", "SC-13"],
+        "nist171": ["3.5.10"],
+        "pci": ["8.3.2"],
+        "stig": ["SRG-OS-000073-GPOS-00041", "SRG-OS-000074-GPOS-00042"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Switch password hashing and authentication to SCRAM-SHA-256.",
+        "manual": "Set `password_encryption = 'scram-sha-256'`, reload, have every user set their password again (`\\password` in psql) so the hash is re-created, then change `md5`/`password` to `scram-sha-256` in pg_hba.conf and `SELECT pg_reload_conf()`. Clients need libpq 10 or later."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.03",
+      "title": "Database servers reachable over the network encrypt connections",
+      "pillar": 14,
+      "severity": "high",
+      "level": 2,
+      "rationale": "Database protocols carry credentials and query results; in clear text on the network they are read or altered by anyone on the path.",
+      "check": "PostgreSQL listening beyond the loopback (listen_addresses): every pg_hba rule for network clients is `hostssl`, and `ssl = on`. MySQL/MariaDB listening beyond the loopback: `require_secure_transport = ON`. MongoDB bound beyond the loopback: `net.tls.mode: requireTLS`. Redis/Valkey, Memcached and Elasticsearch/OpenSearch: no clear-text port reachable beyond the loopback. Servers bound to the loopback or a Unix socket only pass.",
+      "map": {
+        "cis": ["3.10"],
+        "anssi": ["R79"],
+        "nist": ["SC-8", "SC-8(1)"],
+        "nist171": ["3.13.8"],
+        "pci": ["4.2.1", "2.2.7"],
+        "stig": ["SRG-OS-000423-GPOS-00187"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Require TLS for network clients, or keep the server on the loopback.",
+        "manual": "PostgreSQL: `ssl = on` with a certificate, and `hostssl` instead of `host` in pg_hba.conf. MySQL/MariaDB: `require_secure_transport = ON` under [mysqld]. MongoDB: `net.tls.mode: requireTLS` with `certificateKeyFile`. Redis/Valkey 6+: `tls-port` with `port 0`. Memcached 1.6+: `-Z` with a certificate. Elasticsearch: `xpack.security.http.ssl.enabled: true`. When only local applications connect, bind the server to 127.0.0.1 instead."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.04",
+      "title": "PostgreSQL logs connections and disconnections",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "Without connection logs a password-guessing campaign or a stolen account leaves no trace of who connected, from where, and for how long.",
+      "check": "`log_connections = on` and `log_disconnections = on` (pg_settings). Not applicable without a running PostgreSQL.",
+      "map": {
+        "cis": ["8.2", "8.5"],
+        "cis_benchmark": "PostgreSQL: Ensure 'log_connections' is enabled",
+        "anssi": ["R72"],
+        "nist": ["AU-2", "AU-12"],
+        "nist171": ["3.3.1"],
+        "pci": ["10.2.1"],
+        "stig": ["SRG-OS-000032-GPOS-00013"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Log connections and disconnections.",
+        "manual": "`ALTER SYSTEM SET log_connections = on; ALTER SYSTEM SET log_disconnections = on;` then `SELECT pg_reload_conf();` (sessions opened afterwards are logged), or set both in postgresql.conf and reload."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.05",
+      "title": "MySQL/MariaDB administrators cannot log in from other hosts",
+      "pillar": 14,
+      "severity": "high",
+      "level": 1,
+      "rationale": "A root or SUPER account reachable from any host (`%`) turns one guessed or leaked password into full control of every database from anywhere.",
+      "check": "No unlocked `root` account, nor unlocked account with the SUPER privilege, whose host is other than localhost, 127.0.0.1 or ::1. Not applicable without a running MySQL/MariaDB.",
+      "map": {
+        "cis": ["5.4"],
+        "cis_benchmark": "MySQL: Ensure No Users Have Wildcard Hostnames",
+        "anssi": ["R80"],
+        "nist": ["AC-6", "AC-17"],
+        "nist171": ["3.1.5", "3.1.12"],
+        "pci": ["7.2.2"],
+        "stig": ["SRG-OS-000297-GPOS-00115"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Restrict administrator accounts to local connections.",
+        "manual": "`RENAME USER 'root'@'%' TO 'root'@'localhost'` (or `DROP USER` when a local root exists), and give remote applications dedicated accounts with only the privileges they need, bound to their hosts. Docker images: set MYSQL_ROOT_HOST / MARIADB_ROOT_HOST to localhost."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.06",
+      "title": "MySQL/MariaDB refuses LOAD DATA LOCAL",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "LOAD DATA LOCAL lets a malicious or compromised server read any file the client can read; with an SQL injection it also serves to pull files into the database.",
+      "check": "Now: `local_infile` is OFF (global variables). Next start: `mysqld --verbose --help` (the option files as the server reads them) shows local-infile FALSE. Not applicable without a running MySQL/MariaDB.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "MySQL: Ensure 'local_infile' is Disabled",
+        "anssi": ["R63"],
+        "nist": ["CM-7"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable local_infile, now and in the option files.",
+        "manual": "Add `local_infile = 0` under [mysqld] in /etc/mysql/conf.d/ (Debian/Ubuntu) or /etc/my.cnf.d/ (RHEL-family), and run `SET GLOBAL local_infile = 0;` to apply it without a restart."
+      },
+      "scope": "any",
+      "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-14.07",
+      "title": "MySQL/MariaDB limits file import and export to one directory",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "With `secure_file_priv` empty, an account with the FILE privilege (or an SQL injection through it) reads and writes files anywhere the server account can, such as web roots.",
+      "check": "Now: `secure_file_priv` is a directory or NULL (global variables). Next start: `mysqld --verbose --help` shows secure-file-priv set. Not applicable without a running MySQL/MariaDB.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "MySQL: Ensure 'secure_file_priv' is Configured Correctly",
+        "anssi": ["R63"],
+        "nist": ["CM-7", "AC-3"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Confine file import and export to a dedicated directory.",
+        "manual": "Add `secure_file_priv = /var/lib/mysql-files` (a directory owned by the server account, mode 0750) or `secure_file_priv = NULL` under [mysqld] and restart the server (the variable is read-only at runtime)."
+      },
+      "scope": "any",
+      "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-14.08",
+      "title": "Redis/Valkey dangerous commands are not available to the default user",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "CONFIG, MODULE and DEBUG turn a Redis session into file writes and code execution on the host; FLUSHALL and SHUTDOWN destroy or stop the service.",
+      "check": "FLUSHALL, FLUSHDB, CONFIG, DEBUG, MODULE and SHUTDOWN are renamed to \"\" (rename-command) or denied to the default user by its ACL (`-@dangerous` or one rule per command). Not applicable without a running Redis/Valkey.",
+      "map": {
+        "cis": ["16.7"],
+        "anssi": ["R63"],
+        "nist": ["CM-7", "AC-6"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Deny dangerous commands to the default user.",
+        "manual": "Redis/Valkey 6+: give the default user an ACL without them (`user default on >secret ~* &* +@all -@dangerous`) and create a separate admin user for maintenance; older versions: `rename-command CONFIG \"\"` (and the others) in redis.conf. Restart the server."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.09",
+      "title": "Memcached does not listen on UDP",
+      "pillar": 14,
+      "severity": "high",
+      "level": 1,
+      "rationale": "Memcached over UDP answers a small spoofed request with a huge reply: exposed instances powered the largest amplification DDoS attacks on record.",
+      "check": "No running memcached listens on UDP: `-U 0`, or no -U option on version 1.5.6 and later (UDP off by default). Not applicable without a running Memcached.",
+      "map": {
+        "cis": ["4.8"],
+        "anssi": ["R80"],
+        "nist": ["CM-7", "SC-5"],
+        "nist171": ["3.4.7"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000096-GPOS-00050"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Turn memcached's UDP port off.",
+        "manual": "Add `-U 0` to the memcached options (/etc/memcached.conf on Debian/Ubuntu, OPTIONS in /etc/sysconfig/memcached on RHEL-family) and restart it."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-14.10",
+      "title": "MongoDB server-side JavaScript is disabled",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "$where, mapReduce and $function run JavaScript inside mongod: an injection in a query becomes code running in the database server.",
+      "check": "`security.javascriptEnabled: false` in the configuration file of the running mongod, or `--noscripting` on its command line. Not applicable without a running MongoDB.",
+      "map": {
+        "cis": ["16.7"],
+        "anssi": ["R63"],
+        "nist": ["CM-7"],
+        "nist171": ["3.4.6"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000095-GPOS-00049"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable server-side JavaScript.",
+        "manual": "Set `security.javascriptEnabled: false` in /etc/mongod.conf (or start mongod with --noscripting) and restart it, after checking that no application relies on $where, mapReduce or $function."
+      },
+      "scope": "any",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-14.11",
+      "title": "Database servers do not run as root",
+      "pillar": 14,
+      "severity": "high",
+      "level": 1,
+      "rationale": "A database running as root gives any flaw or feature that reaches the host (COPY PROGRAM, UDFs, module loading, file export) root privileges.",
+      "check": "No postgres, mysqld/mariadbd, redis-server/valkey-server, mongod, memcached or Elasticsearch/OpenSearch process runs as uid 0. Not applicable without a running database server.",
+      "map": {
+        "cis": ["16.7"],
+        "cis_benchmark": "MySQL: Use Dedicated Least Privileged Account for MySQL Daemon/Service",
+        "anssi": ["R35", "R64"],
+        "nist": ["AC-6"],
+        "nist171": ["3.1.5"],
+        "pci": ["7.2.5"],
+        "stig": ["SRG-OS-000326-GPOS-00126"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Run each database server under its own unprivileged account.",
+        "manual": "Use the account created by the package (postgres, mysql, redis, valkey, mongodb/mongod, memcache/memcached, elasticsearch): `User=` in the systemd unit, `user = mysql` under [mysqld], `-u memcache` for memcached. Fix the ownership of the data directory before restarting."
+      },
+      "scope": "any",
+      "evidence": ["runtime"]
+    },
+    {
+      "id": "SA-14.12",
+      "title": "Database data directories are private",
+      "pillar": 14,
+      "severity": "medium",
+      "level": 1,
+      "rationale": "Data files readable by other local users bypass every access control of the database: any compromised service account on the host can copy the whole database.",
+      "check": "The data directory of each running server (PostgreSQL data_directory, MySQL/MariaDB datadir, Redis/Valkey dir, MongoDB dbPath, Elasticsearch/OpenSearch path.data) grants no permission to other users (mode ends in 0). Not applicable without a running database server.",
+      "map": {
+        "cis": ["3.3"],
+        "anssi": ["R50"],
+        "nist": ["AC-3", "AC-6"],
+        "nist171": ["3.1.1"],
+        "pci": ["7.2.2"],
+        "stig": ["SRG-OS-000080-GPOS-00048"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Remove other users' access to the data directories.",
+        "manual": "`chmod o-rwx <data directory>` (PostgreSQL requires 0700 or 0750 on its data directory anyway) and check that the owner is the server account."
+      },
+      "scope": "any",
+      "evidence": ["filesystem"]
+    },
+    {
+      "id": "SA-15.01",
+      "title": "CPU flaw mitigations are active",
+      "pillar": 15,
+      "severity": "high",
+      "level": 1,
+      "rationale": "Spectre, Meltdown, MDS, Retbleed and their successors let unprivileged code, or a neighbour virtual machine, read kernel and other processes' memory. The kernel mitigates them unless told not to.",
+      "check": "No entry of /sys/devices/system/cpu/vulnerabilities reports `Vulnerable` (the CPU, its microcode and the kernel together). Now: the running kernel was not booted with mitigations=off or a parameter that disables one mitigation (nopti, nospectre_v2, mds=off...). Next boot: none of these parameters in the boot configuration.",
+      "map": {
+        "cis": ["4.1"],
+        "anssi": ["R8"],
+        "nist": ["SC-39", "SI-16"],
+        "nist171": ["3.13.4"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000138-GPOS-00069"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Remove the parameters that disable mitigations and load current microcode.",
+        "manual": "Remove mitigations=off and the per-flaw `no...`/`...=off` parameters from the kernel command line (`grubby --update-kernel=ALL --remove-args=\"mitigations=off\"` on RHEL-family; edit GRUB_CMDLINE_LINUX in /etc/default/grub then `update-grub` on Debian/Ubuntu), install the CPU microcode package (SA-15.03) and a current kernel, then reboot. `Vulnerable` without such a parameter usually means missing microcode."
+      },
+      "scope": "host",
+      "evidence": ["inventory", "runtime", "persistent"]
+    },
+    {
+      "id": "SA-15.02",
+      "title": "SMT is off where CPU flaws require it",
+      "pillar": 15,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "Some flaws (MDS, L1TF, MMIO stale data, SRSO) can only be fully mitigated by not sharing a core between two threads: sibling threads leak data to each other, across processes and virtual machines.",
+      "check": "Now: when SMT is active, no entry of /sys/devices/system/cpu/vulnerabilities reports `SMT vulnerable`. Next boot: when a flaw's mitigation depends on SMT, the boot configuration carries nosmt (or mitigations=auto,nosmt, mds=full,nosmt...). Not applicable in a virtual machine or on a CPU without SMT.",
+      "map": {
+        "cis": ["4.1"],
+        "anssi": ["R8"],
+        "nist": ["SC-39", "SC-4"],
+        "nist171": ["3.13.4"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000138-GPOS-00069"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable SMT on hosts exposed to these flaws.",
+        "manual": "Add `nosmt` (or `mitigations=auto,nosmt`) to the kernel command line and reboot; `echo off > /sys/devices/system/cpu/smt/control` applies it until then. This halves the hardware threads: weigh it against the workload, it matters most on hypervisors and multi-tenant hosts."
+      },
+      "scope": "host",
+      "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-15.03",
+      "title": "CPU microcode updates are installed",
+      "pillar": 15,
+      "severity": "high",
+      "level": 1,
+      "rationale": "Microcode updates carry the CPU side of flaw mitigations (IBRS, VERW, SRSO...); without them the kernel reports the flaws as vulnerable whatever its settings.",
+      "check": "The microcode package of the CPU vendor is installed: intel-microcode or amd64-microcode (Debian/Ubuntu), microcode_ctl or linux-firmware / amd-ucode-firmware (RHEL-family), ucode-intel or ucode-amd (SUSE), intel-ucode or amd-ucode (Arch). Not applicable in a virtual machine (the hypervisor loads microcode) or on a non-x86 CPU.",
+      "map": {
+        "cis": ["7.3"],
+        "anssi": ["R61"],
+        "nist": ["SI-2"],
+        "nist171": ["3.14.1"],
+        "pci": ["6.3.3"],
+        "stig": ["SRG-OS-000191-GPOS-00080"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Install the CPU microcode package.",
+        "manual": "Debian/Ubuntu: `apt install intel-microcode` or `apt install amd64-microcode` (non-free-firmware component on Debian 12+). RHEL-family: `dnf install microcode_ctl` (Intel) or `linux-firmware` (AMD). Reboot to load it early."
+      },
+      "scope": "host",
+      "evidence": ["inventory"]
+    },
+    {
+      "id": "SA-15.04",
+      "title": "The IOMMU is active",
+      "pillar": 15,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "Without an IOMMU any DMA-capable device (Thunderbolt, PCIe, FireWire, a compromised NIC or GPU firmware) reads and writes all of physical memory, kernel included.",
+      "check": "Now: /sys/class/iommu has at least one unit and the running kernel was not booted with intel_iommu=off, amd_iommu=off, iommu=off, iommu=pt or iommu.passthrough=1. Next boot: none of these in the boot configuration, and the IOMMU is either active now or requested (intel_iommu=on, iommu=force). Not applicable in a virtual machine.",
+      "map": {
+        "cis": ["4.1"],
+        "anssi": ["R7"],
+        "nist": ["SC-39", "AC-3"],
+        "nist171": ["3.13.4"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000134-GPOS-00068"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Enable VT-d/AMD-Vi in the firmware and the IOMMU in the kernel.",
+        "manual": "Enable VT-d (Intel) or AMD-Vi/IOMMU in the BIOS/UEFI setup, add `intel_iommu=on iommu=force` (Intel) or `iommu=force` (AMD) to the kernel command line and remove any iommu=off/pt parameter, then reboot. Check the devices you pass through or accelerate (GPU, SR-IOV NICs) afterwards."
+      },
+      "scope": "host",
+      "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-15.05",
+      "title": "Thunderbolt ports do not grant DMA to any device",
+      "pillar": 15,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "With the Thunderbolt security level `none`, any device plugged in gets PCIe access and can read memory (Thunderclap, Thunderspy) unless the kernel's pre-boot DMA protection is on.",
+      "check": "Every Thunderbolt domain under /sys/bus/thunderbolt/devices has a security level other than `none` (user, secure, dponly, usbonly), or iommu_dma_protection = 1. Not applicable without a Thunderbolt controller.",
+      "map": {
+        "cis": ["10.3"],
+        "anssi": ["R2", "R7"],
+        "nist": ["AC-19", "SC-41"],
+        "nist171": ["3.8.7"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000378-GPOS-00163"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Require device authorisation on Thunderbolt ports.",
+        "manual": "In the BIOS/UEFI setup set the Thunderbolt security level to `User authorization` or `Secure connect` (or `DisplayPort and USB only` when no PCIe device is needed), or enable Kernel DMA Protection; authorise devices with `boltctl`."
+      },
+      "scope": "host",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-15.06",
+      "title": "FireWire cannot be used",
+      "pillar": 15,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "FireWire (IEEE 1394) gives connected devices DMA to physical memory by design: a cable is enough to read keys or unlock a session.",
+      "check": "firewire-core, firewire-ohci, firewire-sbp2 and firewire-net are not loaded now, and the effective modprobe configuration makes loading them a no-op (or the modules do not exist).",
+      "map": {
+        "cis": ["10.3"],
+        "anssi": ["R10"],
+        "nist": ["CM-7", "SC-41"],
+        "nist171": ["3.8.7"],
+        "pci": ["2.2.4"],
+        "stig": ["SRG-OS-000378-GPOS-00163"]
+      },
+      "remediation": {
+        "auto": true,
+        "summary": "Disable the FireWire modules in /etc/modprobe.d/60-shadow-armor.conf and unload them.",
+        "actions": [
+          {
+            "kind": "modprobe_disable",
+            "modules": ["firewire-core", "firewire-ohci", "firewire-sbp2", "firewire-net"]
+          }
+        ],
+        "reboot": false,
+        "risk": "FireWire devices (old audio interfaces, camcorders, disks) stop working on this host."
+      },
+      "scope": "host",
+      "evidence": ["runtime", "persistent"]
+    },
+    {
+      "id": "SA-15.07",
+      "title": "A TPM 2.0 is available",
+      "pillar": 15,
+      "severity": "low",
+      "level": 2,
+      "rationale": "A TPM measures the boot chain and seals secrets to it: disk encryption without a passphrase at boot, attestation and key storage that survive an OS compromise.",
+      "check": "/sys/class/tpm holds a TPM whose major version is 2.",
+      "map": {
+        "cis": ["4.1"],
+        "anssi": ["R1"],
+        "nist": ["SC-12", "SI-7"],
+        "nist171": ["3.13.10"],
+        "pci": ["3.6.1"],
+        "stig": ["SRG-OS-000366-GPOS-00153"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Enable the TPM 2.0 in the firmware (or a vTPM for a virtual machine).",
+        "manual": "Physical host: enable the TPM (Intel PTT, AMD fTPM or a discrete TPM) in the BIOS/UEFI setup, in TPM 2.0 mode. Virtual machine: add a vTPM (libvirt `<tpm model='tpm-crb'><backend type='emulator' version='2.0'/></tpm>`, Shielded/Trusted Launch VMs in public clouds)."
+      },
+      "scope": "host",
+      "evidence": ["inventory"]
+    },
+    {
+      "id": "SA-15.08",
+      "title": "The BMC refuses unauthenticated IPMI sessions",
+      "pillar": 15,
+      "severity": "high",
+      "level": 1,
+      "rationale": "IPMI cipher suite 0 and the NONE authentication type let anyone on the management network log in to the BMC with any password, and the BMC controls power, console and firmware of the server.",
+      "check": "For each LAN channel `ipmitool lan print` answers on: cipher suite 0 is disabled (first letter of `Cipher Suite Priv Max` is X) and NONE is not an enabled authentication type. Fails when a BMC is present but ipmitool is missing. Not applicable without a BMC device (/dev/ipmi0).",
+      "map": {
+        "cis": ["4.6", "12.3"],
+        "anssi": ["R1"],
+        "nist": ["IA-2", "AC-17", "MA-4"],
+        "nist171": ["3.5.2", "3.7.5"],
+        "pci": ["2.2.2", "8.3.1"],
+        "stig": ["SRG-OS-000125-GPOS-00065"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Disable cipher suite 0 and the NONE authentication type on the BMC.",
+        "manual": "`ipmitool lan set 1 cipher_privs XXXaXXXXXXXXXXX` (one letter per suite, X = unused; keep only 3 or 17), `ipmitool lan set 1 auth ADMIN MD5` (and CALLBACK, USER, OPERATOR) for IPMI 1.5, repeat for every LAN channel, and keep the BMC on an isolated management network. The vendor's web interface (iDRAC, iLO, XCC) offers the same settings."
+      },
+      "scope": "host",
+      "evidence": ["config"]
+    },
+    {
+      "id": "SA-15.09",
+      "title": "No firmware update is pending",
+      "pillar": 15,
+      "severity": "medium",
+      "level": 2,
+      "rationale": "Firmware (UEFI, BMC, SSD, NIC, Thunderbolt) has its own flaws, fixed by updates that the package manager does not install.",
+      "check": "`fwupdmgr get-updates` lists no update for any device (with the metadata already on the host; refreshing it is left to fwupd-refresh.timer). Fails when fwupd cannot tell (metadata never refreshed, daemon unreachable). Not applicable in a virtual machine or when fwupd is not installed (vendor tools then).",
+      "map": {
+        "cis": ["7.3"],
+        "anssi": ["R61"],
+        "nist": ["SI-2"],
+        "nist171": ["3.14.1"],
+        "pci": ["6.3.3"],
+        "stig": ["SRG-OS-000191-GPOS-00080"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Apply the pending firmware updates.",
+        "manual": "`fwupdmgr refresh && fwupdmgr update` during a maintenance window (some updates apply at the next reboot), and enable fwupd-refresh.timer so the metadata stays current."
+      },
+      "scope": "host",
+      "evidence": ["inventory"]
+    },
+    {
+      "id": "SA-15.10",
+      "title": "USBGuard only allows known USB devices",
+      "pillar": 15,
+      "severity": "low",
+      "level": 2,
+      "rationale": "A USB device is trusted the moment it is plugged: a keyboard emulator types commands, a network adapter reroutes traffic. USBGuard only authorises the devices of a policy.",
+      "check": "The policy: a rule file with at least one rule and `ImplicitPolicyTarget` block or reject. Now: usbguard.service is active. Next boot: it is enabled. Not applicable in a virtual machine.",
+      "map": {
+        "cis": ["10.3"],
+        "nist": ["CM-7", "IA-3"],
+        "nist171": ["3.8.7"],
+        "pci": ["2.2.6"],
+        "stig": ["SRG-OS-000378-GPOS-00163"]
+      },
+      "remediation": {
+        "auto": false,
+        "summary": "Install USBGuard with a policy of the devices connected now.",
+        "manual": "`apt install usbguard` or `dnf install usbguard`, generate the policy with the expected devices connected (`usbguard generate-policy > /etc/usbguard/rules.conf`, mode 0600), review it, then `systemctl enable --now usbguard`. Keep a console access path in case a keyboard is blocked."
+      },
+      "scope": "host",
+      "evidence": ["config", "runtime", "persistent"]
     }
   ]
 }

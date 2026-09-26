@@ -36,7 +36,7 @@ func TestCommands(t *testing.T) {
 		want string
 	}{
 		{[]string{}, 0, "COMMANDS"},
-		{[]string{"version"}, 0, "controls  162"},
+		{[]string{"version"}, 0, "controls  197"},
 		{[]string{"explain", "SA-06.01"}, 0, "PermitRootLogin"},
 		{[]string{"explain", "nope"}, 2, ""},
 		{[]string{"list", "--pillar", "ssh"}, 0, "SA-06.20"},

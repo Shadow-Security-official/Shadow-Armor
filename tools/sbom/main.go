@@ -245,7 +245,7 @@ func main() {
 		root, name, desc string
 		ver              string
 	}{
-		{shadowarmor.Profile, "profile", "shadow-armor InSpec profile", "CINC Auditor / InSpec profile embedded in the binary: 162 controls, effective-state resources and the catalog of mappings",
+		{shadowarmor.Profile, "profile", "shadow-armor InSpec profile", "CINC Auditor / InSpec profile embedded in the binary: the controls, effective-state resources and the catalog of mappings",
 			versionOf(shadowarmor.Profile, "profile/inspec.yml", regexp.MustCompile(`(?m)^version:\s*['"]?([^'"\s]+)`))},
 		{shadowarmor.Cookbook, "cookbook", "shadow_armor Chef cookbook", "Chef cookbook embedded in the binary: converges the declarative remediations of sdw-armor harden",
 			versionOf(shadowarmor.Cookbook, "cookbook/shadow_armor/metadata.rb", regexp.MustCompile(`(?m)^version\s+['"]([^'"]+)`))},

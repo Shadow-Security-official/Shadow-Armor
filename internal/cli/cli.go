@@ -252,7 +252,7 @@ func (a *app) banner(quiet bool) {
 		v = "v" + v
 	}
 	fmt.Fprintln(a.stderr)
-	for _, l := range t.Profile.Banner(t.Width, v, fmt.Sprintf("%d controls · 12 pillars", len(a.cat.Controls))) {
+	for _, l := range t.Profile.Banner(t.Width, v, fmt.Sprintf("%d controls · %d pillars", len(a.cat.Controls), len(a.cat.Pillars))) {
 		fmt.Fprintln(a.stderr, l)
 	}
 	fmt.Fprintln(a.stderr)

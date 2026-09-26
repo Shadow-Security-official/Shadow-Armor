@@ -19,7 +19,7 @@ Every release publishes one static binary per platform, `.deb` and `.rpm` packag
 The install page, [armor.shadow-security.fr](https://armor.shadow-security.fr), writes the command below for your system, architecture and version, with the checksum verification (and optionally the Sigstore signature) built in.
 
 ```sh
-VERSION=v0.4.0     # https://github.com/Shadow-Security-official/Shadow-Armor/releases
+VERSION=v0.5.0     # https://github.com/Shadow-Security-official/Shadow-Armor/releases
 ARCH=amd64         # or arm64
 BASE=https://github.com/Shadow-Security-official/Shadow-Armor/releases/download/$VERSION
 curl -fsSLO "$BASE/sdw-armor-linux-$ARCH"

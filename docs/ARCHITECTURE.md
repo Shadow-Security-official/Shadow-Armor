@@ -45,7 +45,7 @@ packaging/              nfpm configuration of the .deb and .rpm packages
    end
    ```
 
-   Prefer an existing effective resource (`sdw_sshd`, `sdw_sysctl`, `sdw_unit`, `sdw_auditd`, `sdw_pam`, `sdw_sudoers`, `sdw_kv`, `sdw_mount`...). When the state has a live side and a boot-time source, check both and name the properties `runtime*` / `persistent*` (`SdwState.new(label, runtime:, persistent:)` wraps two computed values): a live-only check makes every PASS runtime-only. Wrap shell snippets in `sdw_sh(...)` so `--sudo` covers pipes and globs.
+   Prefer an existing effective resource (`sdw_sshd`, `sdw_sysctl`, `sdw_unit`, `sdw_auditd`, `sdw_pam`, `sdw_sudoers`, `sdw_kv`, `sdw_mount`...). When the state has a live side and a boot-time source, check both and name the properties `runtime*` / `persistent*` (`SdwState.new(label, runtime:, persistent:)` wraps two computed values): a live-only check makes every PASS runtime-only. Wrap shell snippets in `sdw_sh(...)` so `--sudo` covers pipes and globs. Put text parsing in `profile/libraries/01_sdw_parse.rb` (pure functions, no InSpec) and cover it in `profile/test/parse_test.rb`, with a captured output under `profile/test/fixtures/` when the format is not obvious.
 3. If the fix is automatic and needs a new action kind, implement it in `cookbook/shadow_armor/recipes/default.rb` (native resources, validated edits, owned drop-in files) and describe it in `internal/harden/plan.go`.
 4. Regenerate the matrix: `go run ./cmd/sdw-armor list --markdown > docs/CONTROLS.md`.
 5. `make test`, then scan and harden a disposable VM or container of each supported family.

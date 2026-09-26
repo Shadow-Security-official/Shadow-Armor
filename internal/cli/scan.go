@@ -81,7 +81,7 @@ func (a *app) parsePillars(vals []string) ([]int, error) {
 	for _, v := range vals {
 		if n, err := strconv.Atoi(v); err == nil {
 			if _, ok := a.cat.Pillar(n); !ok {
-				return nil, usagef("unknown pillar %d (1-12)", n)
+				return nil, usagef("unknown pillar %d (1-%d)", n, len(a.cat.Pillars))
 			}
 			out = append(out, n)
 			continue
@@ -94,7 +94,7 @@ func (a *app) parsePillars(vals []string) ([]int, error) {
 			}
 		}
 		if !found {
-			return nil, usagef("unknown pillar %q (use 1-12 or a key from `sdw-armor list --pillars`)", v)
+			return nil, usagef("unknown pillar %q (use 1-%d or a key from `sdw-armor list --pillars`)", v, len(a.cat.Pillars))
 		}
 	}
 	return out, nil

@@ -91,18 +91,22 @@
     svg.setAttribute("role", "img");
     var byId = {};
     ps.forEach(function (p) { byId[p.id] = p; });
-    function pt(i, r) { var a = -Math.PI / 2 + (i * 2 * Math.PI) / 12; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
+    // One axis per pillar of the catalog (the report lists them all).
+    var axes = (R.pillars || []).map(function (p) { return p.id; });
+    if (!axes.length) axes = ps.map(function (p) { return p.id; });
+    var n = axes.length;
+    function pt(i, r) { var a = -Math.PI / 2 + (i * 2 * Math.PI) / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; }
     [0.25, 0.5, 0.75, 1].forEach(function (f) {
       var poly = document.createElementNS(NS, "polygon");
       var pts = [];
-      for (var i = 0; i < 12; i++) pts.push(pt(i, rad * f).join(","));
+      for (var i = 0; i < n; i++) pts.push(pt(i, rad * f).join(","));
       poly.setAttribute("points", pts.join(" "));
       poly.setAttribute("fill", "none"); poly.setAttribute("stroke", "var(--line)");
       svg.appendChild(poly);
     });
     var shape = [];
-    for (var i = 0; i < 12; i++) {
-      var p = byId[i + 1];
+    for (var i = 0; i < n; i++) {
+      var p = byId[axes[i]];
       var v = p && p.score !== null ? p.score / 100 : 0;
       shape.push(pt(i, rad * v).join(","));
       var ax = document.createElementNS(NS, "line");
@@ -113,7 +117,7 @@
       var lp = pt(i, rad + 16);
       var t = document.createElementNS(NS, "text");
       t.setAttribute("x", lp[0]); t.setAttribute("y", lp[1] + 3); t.setAttribute("text-anchor", "middle");
-      t.textContent = String(i + 1).padStart(2, "0") + (p ? " " + p.grade : "");
+      t.textContent = String(axes[i]).padStart(2, "0") + (p ? " " + p.grade : "");
       svg.appendChild(t);
     }
     var area = document.createElementNS(NS, "polygon");

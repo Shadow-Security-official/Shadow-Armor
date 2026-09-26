@@ -36,7 +36,7 @@ func (a *app) help(w io.Writer) {
 		v = "v" + v
 	}
 	fmt.Fprintln(w)
-	for _, l := range p.Banner(t.Width, v, fmt.Sprintf("%d controls · 12 pillars", len(a.cat.Controls))) {
+	for _, l := range p.Banner(t.Width, v, fmt.Sprintf("%d controls · %d pillars", len(a.cat.Controls), len(a.cat.Pillars))) {
 		fmt.Fprintln(w, l)
 	}
 	fmt.Fprintln(w)

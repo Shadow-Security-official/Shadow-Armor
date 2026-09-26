@@ -32,6 +32,18 @@ module ::SdwMemo
   end
 end
 
+# A control skipped by a first only_if keeps that reason: InSpec would let a
+# later only_if overwrite the message (and run its probe for nothing), so a
+# host-scoped control inside a container would report the wrong cause.
+module ::SdwFirstSkipReason
+  def only_if(*args, **opts, &block)
+    return if block && @__skip_rule.is_a?(Hash) && @__skip_rule[:result]
+
+    super
+  end
+end
+::Inspec::Rule.prepend(::SdwFirstSkipReason)
+
 class ::SdwCatalog < Inspec.resource(1)
   name 'sdw_catalog'
   desc 'The Shadow-Armor catalog: control metadata, standard mappings and input defaults.'

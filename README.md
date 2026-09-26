@@ -35,8 +35,8 @@ Shadow-Armor audits the configuration your services *actually run* (`sshd -T`, `
 ## Features
 
 - **Effective, not file-based.** A control on a service reads the resolved state: `sshd -T`, live `sysctl` values, `systemctl show`, `auditctl -l`, PAM stacks with every `@include` expanded, sudoers with every `#includedir`, `modprobe --showconfig`, `systemd-analyze cat-config`. It sees the `Include`s and drop-ins a file read misses (a permissive `50-cloud-init.conf` overriding a stricter main config) and **names the file and line that set the effective value**.
-- **One control, every applicable mapping.** 162 neutral controls, each carrying its CIS Controls v8 safeguards and CIS Benchmark recommendation, ANSSI BP-028 v2.0, NIST SP 800-53 Rev. 5 and SP 800-171, PCI DSS v4.0 and DISA SRG references.
-- **12 hardening pillars**, each with its own grade (table below), including data encryption at rest and crypto / FIDO / OTP multi-factor policies.
+- **One control, every applicable mapping.** 197 neutral controls, each carrying its CIS Controls v8 safeguards and CIS Benchmark recommendation, ANSSI BP-028 v2.0, NIST SP 800-53 Rev. 5 and SP 800-171, PCI DSS v4.0 and DISA SRG references.
+- **15 hardening pillars**, each with its own grade (table below), from data encryption at rest and crypto / FIDO / OTP multi-factor policies to web services and TLS certificates, databases, and the hardware and firmware under the kernel.
 - **A qualified verdict: what a PASS proves.** Every verdict carries three proof columns, **running now · on disk · after a reboot**, built from the kind of state each assertion reads (live, boot configuration, resolved config, inventory, files). A PASS is **durable** or **runtime-only** (the persisted state contradicts it, or nothing on disk proves it); a FAIL can be **pending** (already fixed on disk, waiting for a reboot or reload). Persistence is folded into the checks wherever it has a clean source (sysctl.d, enabled units, modprobe.d, fstab, boot command line, rules.d, firewall and MAC at boot, lockdown, swap), and a test keeps each control's declared evidence honest against its code. An A that rests on runtime-only passes is capped at B, and only when it rests on them, so failing a control never grades better than passing it.
 - **Reboot-proven.** Every report records the boot it observed. `scan --reboot-baseline before.json` compares two scans of the same machine across a real reboot: what survived is **reboot-proven**, what vanished is **lost at the reboot**. `harden --reboot` does it end to end: fix, re-audit, reboot, wait for the new boot, prove.
 - **A:E grade.** A [published formula](docs/SCORING.md) (severity-weighted, critical-capped, fail-closed), computed identically in the CLI and in the HTML report. Re-grade the same scan through a single standard with a **standard lens** (`--lens anssi`, `--lens pci`...).
@@ -53,7 +53,7 @@ Shadow-Armor audits the configuration your services *actually run* (`sshd -T`, `
 [armor.shadow-security.fr](https://armor.shadow-security.fr) writes the whole command for your system, architecture and version: download, SHA-256 check, install. By hand:
 
 ```sh
-VERSION=v0.4.0   # see https://github.com/Shadow-Security-official/Shadow-Armor/releases
+VERSION=v0.5.0   # see https://github.com/Shadow-Security-official/Shadow-Armor/releases
 ARCH=amd64       # or arm64
 BASE=https://github.com/Shadow-Security-official/Shadow-Armor/releases/download/$VERSION
 curl -fsSLO "$BASE/sdw-armor-linux-$ARCH"
@@ -110,7 +110,7 @@ sdw-armor update          # is a newer release published? installs nothing
 sudo sdw-armor upgrade    # download, verify (SHA-256, and Sigstore with cosign), install
 ```
 
-## The 12 pillars
+## The 15 pillars
 
 | # | Pillar | Règle | Controls |
 |---|---|---|---|
@@ -126,6 +126,9 @@ sudo sdw-armor upgrade    # download, verify (SHA-256, and Sigstore with cosign)
 | 10 | Updates & patching | Vérifiez les mises à jour applicatives | pending security updates, metadata age, unattended upgrades, signatures, reboot debt, deleted libraries in memory, EOL release |
 | 11 | Data encryption at rest | Chiffrez vos données et les données métier de vos applications | dm-crypt/LUKS behind data mounts, swap, LUKS2/argon2id, crash dumps, private keys, application data, user credentials |
 | 12 | Crypto policy, FIDO & MFA | Instaurez des politiques crypto / FIDO / MFA par OTP | system crypto policy, TLS floor probed with OpenSSL, SSH algorithms, post-quantum KEX, SSH MFA (OTP, FIDO2), MFA for sudo, OTP seed protection, FIPS |
+| 13 | Web services & TLS | Sécurisez vos services web et vos certificats TLS | nginx (`nginx -T`), Apache (its include tree), HAProxy, Caddy, lighttpd, Tomcat: version banners, directory listing, TLS 1.2 floor, root workers, TRACE, stats and admin endpoints, shutdown port, manager apps; every local TLS port probed for TLS 1.0/1.1, certificate expiry, key size and HSTS |
+| 14 | Databases | Protégez l'accès et la configuration de vos bases de données | PostgreSQL, MySQL/MariaDB, Redis/Valkey, MongoDB, Memcached, Elasticsearch/OpenSearch queried as they apply their settings: authentication (and an unauthenticated probe), SCRAM, TLS on the network, remote administrators, local_infile, secure_file_priv, dangerous commands, UDP, server-side JavaScript, root processes, data directory permissions |
+| 15 | Hardware & firmware | Maîtrisez le matériel, le microcode et le firmware | CPU flaw mitigations and the boot parameters that disable them, SMT, microcode, IOMMU, Thunderbolt and FireWire DMA, TPM 2.0, BMC (IPMI cipher 0), pending firmware updates (fwupd), USBGuard |
 
 The full matrix, with every mapping, is in [docs/CONTROLS.md](docs/CONTROLS.md). `sdw-armor explain SA-06.17` shows the rationale, the effective probe, the mappings and the fix of any control.
 

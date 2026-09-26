@@ -44,10 +44,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: cinc-auditor check
         run: docker run --rm -v "$PWD/profile:/profile:ro" cincproject/auditor:latest check /profile --no-color
-      - name: Ruby syntax and cookbook helper tests
+      - name: Ruby syntax, cookbook helper and profile parser tests
         run: |
           docker run --rm -v "$PWD:/src:ro" -w /src ruby:3.3-slim sh -c \
-            'for f in $(find cookbook profile -name "*.rb"); do ruby -c "$f" >/dev/null || exit 1; done; ruby cookbook/shadow_armor/test/helpers_test.rb'
+            'for f in $(find cookbook profile -name "*.rb"); do ruby -c "$f" >/dev/null || exit 1; done; ruby cookbook/shadow_armor/test/helpers_test.rb && ruby profile/test/parse_test.rb'
 
   e2e:
     name: End-to-end (scan, harden, re-audit) on Ubuntu 24.04

@@ -2,7 +2,7 @@
 
 # Shadow-Armor controls
 
-162 controls in 12 pillars. Level 1 is the baseline (`--level 1`, default), level 2 adds hardened controls.
+197 controls in 15 pillars. Level 1 is the baseline (`--level 1`, default), level 2 adds hardened controls.
 *Fix*: `auto` = converged by `sdw-armor harden`, `manual` = documented steps (`sdw-armor explain <id>`).
 *Scope*: `host` controls audit the kernel, boot chain or host daemons and are not applicable inside containers.
 *Proves*: the evidence a PASS rests on. `live + boot` checks the running system and the configuration the next boot applies; `resolved config`, `files` and `inventory` are durable state read as the system uses it; `live` alone is runtime-only until a scan after a reboot proves it (see [SCORING.md](SCORING.md)).
@@ -23,6 +23,9 @@ Standards: **CIS** = CIS Controls v8 / Benchmarks · **ANSSI** = ANSSI BP-028 v2
 | 10 | [Updates & patching](#10-updates) · *Vérifiez les mises à jour applicatives* | 7 |
 | 11 | [Data encryption at rest](#11-encryption) · *Chiffrez vos données et les données métier de vos applications* | 7 |
 | 12 | [Crypto policy, FIDO & MFA](#12-crypto-mfa) · *Instaurez des politiques crypto / FIDO / MFA par OTP* | 11 |
+| 13 | [Web services & TLS](#13-web) · *Sécurisez vos services web et vos certificats TLS* | 13 |
+| 14 | [Databases](#14-databases) · *Protégez l'accès et la configuration de vos bases de données* | 12 |
+| 15 | [Hardware & firmware](#15-hardware) · *Maîtrisez le matériel, le microcode et le firmware* | 10 |
 
 ## 01 Application security & least privilege
 
@@ -269,5 +272,61 @@ Standards: **CIS** = CIS Controls v8 / Benchmarks · **ANSSI** = ANSSI BP-028 v2
 | SA-12.09 | Privilege escalation requires a second factor | medium | 2 | any | manual | resolved config | 6.3, 6.4, 6.5 | R67 | IA-2(1), IA-11 | 3.5.3 | 8.4.1 | 000105-GPOS-00052 |
 | SA-12.10 | OTP seeds and FIDO key maps are protected | high | 1 | any | auto | files | 6.3, 6.4, 6.5 | R67 | IA-5(6), IA-5(2) | 3.5.3 | 8.3.2, 8.6.3 | 000073-GPOS-00041 |
 | SA-12.11 | The kernel runs in FIPS mode | low | 2 | host | manual | live + boot | 3.10 |  | SC-13, IA-7 | 3.13.8, 3.13.11 |  | 000478-GPOS-00223, 000396-GPOS-00176 |
+
+## 13 Web services & TLS
+
+<a id="13-web"></a>*Sécurisez vos services web et vos certificats TLS* — Web servers and reverse proxies read from the configuration they resolve, and every local TLS endpoint probed like a client: no version banner or listing, no legacy TLS, no root worker, exposed admin interface or default secret, sound certificates.
+
+| ID | Control | Sev. | L | Scope | Fix | Proves | CIS v8 | ANSSI | NIST 800-53 | NIST 800-171 | PCI DSS | STIG SRG |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SA-13.01 | Web servers do not disclose their version | low | 1 | any | manual | resolved config | 16.7 | R79 | CM-6, SI-11 | 3.4.2 | 2.2.6 | 000205-GPOS-00083 |
+| SA-13.02 | Web servers do not list directory contents | medium | 1 | any | manual | resolved config | 16.7 | R63 | CM-7, AC-3 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-13.03 | Web servers and proxies only enable TLS 1.2 and later | high | 1 | any | manual | resolved config | 3.10 | R79 | SC-8, SC-8(1), SC-13 | 3.13.8, 3.13.11 | 4.2.1, 2.2.7 | 000423-GPOS-00187, 000424-GPOS-00188 |
+| SA-13.04 | Web servers do not serve requests as root | high | 1 | any | manual | resolved config + live | 16.7 | R35, R64 | AC-6, CM-7 | 3.1.5, 3.1.7 | 7.2.5, 2.2.6 | 000326-GPOS-00126 |
+| SA-13.05 | Apache refuses TRACE requests | medium | 1 | any | manual | resolved config | 16.7 | R63 | CM-7 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-13.06 | The HAProxy statistics page requires authentication | medium | 1 | any | manual | resolved config | 16.7 | R63, R79 | AC-3, IA-2 | 3.5.2 | 8.3.1 | 000080-GPOS-00048 |
+| SA-13.07 | Caddy's admin API only listens on the loopback | high | 1 | any | manual | resolved config | 4.6 | R63, R80 | AC-3, CM-7, SC-7 | 3.4.7 | 2.2.4 | 000297-GPOS-00115 |
+| SA-13.08 | Tomcat's shutdown port is disabled or uses a secret command | high | 1 | any | manual | resolved config | 4.7 | R51 | CM-6, AC-3 | 3.4.2 | 2.2.2 | 000480-GPOS-00227 |
+| SA-13.09 | Tomcat's manager applications are not deployed | medium | 2 | any | manual | files | 4.8 | R58, R63 | CM-7 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-13.10 | Local TLS endpoints refuse TLS 1.0 and 1.1 | high | 1 | any | manual | live | 3.10 | R79 | SC-8(1), SC-13 | 3.13.8 | 4.2.1 | 000423-GPOS-00187 |
+| SA-13.11 | Certificates of local TLS endpoints are not about to expire | high | 1 | any | manual | live | 3.10 |  | SC-12, SC-17 | 3.13.10 | 4.2.1, 4.2.1.1 | 000066-GPOS-00034 |
+| SA-13.12 | Certificates of local TLS endpoints use strong keys | medium | 1 | any | manual | live | 3.10 | R79 | SC-12, SC-13 | 3.13.11 | 4.2.1 | 000478-GPOS-00223 |
+| SA-13.13 | HTTPS endpoints send a long-lived HSTS header | medium | 2 | any | manual | live | 3.10 |  | SC-8, SC-23 | 3.13.15 | 4.2.1 | 000423-GPOS-00187 |
+
+## 14 Databases
+
+<a id="14-databases"></a>*Protégez l'accès et la configuration de vos bases de données* — Database servers queried the way they apply their settings: authentication everywhere, strong password hashing, encrypted network access, no remote administrator, dangerous features off, no root process, private data directories.
+
+| ID | Control | Sev. | L | Scope | Fix | Proves | CIS v8 | ANSSI | NIST 800-53 | NIST 800-171 | PCI DSS | STIG SRG |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SA-14.01 | Database servers require authentication | critical | 1 | any | manual | resolved config + live | 3.3, 4.7 | R51, R79 | IA-2, AC-3, IA-5 | 3.5.1, 3.5.2 | 8.3.1, 2.2.2 | 000104-GPOS-00051, 000080-GPOS-00048 |
+| SA-14.02 | PostgreSQL stores and checks passwords with SCRAM | high | 1 | any | manual | resolved config | 16.7 | R68 | IA-5(1), SC-13 | 3.5.10 | 8.3.2 | 000073-GPOS-00041, 000074-GPOS-00042 |
+| SA-14.03 | Database servers reachable over the network encrypt connections | high | 2 | any | manual | resolved config | 3.10 | R79 | SC-8, SC-8(1) | 3.13.8 | 4.2.1, 2.2.7 | 000423-GPOS-00187 |
+| SA-14.04 | PostgreSQL logs connections and disconnections | medium | 1 | any | manual | resolved config | 8.2, 8.5 | R72 | AU-2, AU-12 | 3.3.1 | 10.2.1 | 000032-GPOS-00013 |
+| SA-14.05 | MySQL/MariaDB administrators cannot log in from other hosts | high | 1 | any | manual | resolved config | 5.4 | R80 | AC-6, AC-17 | 3.1.5, 3.1.12 | 7.2.2 | 000297-GPOS-00115 |
+| SA-14.06 | MySQL/MariaDB refuses LOAD DATA LOCAL | medium | 1 | any | manual | live + boot | 16.7 | R63 | CM-7 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-14.07 | MySQL/MariaDB limits file import and export to one directory | medium | 1 | any | manual | live + boot | 16.7 | R63 | CM-7, AC-3 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-14.08 | Redis/Valkey dangerous commands are not available to the default user | medium | 2 | any | manual | resolved config | 16.7 | R63 | CM-7, AC-6 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-14.09 | Memcached does not listen on UDP | high | 1 | any | manual | live | 4.8 | R80 | CM-7, SC-5 | 3.4.7 | 2.2.4 | 000096-GPOS-00050 |
+| SA-14.10 | MongoDB server-side JavaScript is disabled | medium | 2 | any | manual | resolved config | 16.7 | R63 | CM-7 | 3.4.6 | 2.2.4 | 000095-GPOS-00049 |
+| SA-14.11 | Database servers do not run as root | high | 1 | any | manual | live | 16.7 | R35, R64 | AC-6 | 3.1.5 | 7.2.5 | 000326-GPOS-00126 |
+| SA-14.12 | Database data directories are private | medium | 1 | any | manual | files | 3.3 | R50 | AC-3, AC-6 | 3.1.1 | 7.2.2 | 000080-GPOS-00048 |
+
+## 15 Hardware & firmware
+
+<a id="15-hardware"></a>*Maîtrisez le matériel, le microcode et le firmware* — What sits under the kernel: CPU flaw mitigations and SMT, microcode, the IOMMU and DMA-capable ports, the TPM, the BMC, pending firmware updates and the USB device policy.
+
+| ID | Control | Sev. | L | Scope | Fix | Proves | CIS v8 | ANSSI | NIST 800-53 | NIST 800-171 | PCI DSS | STIG SRG |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SA-15.01 | CPU flaw mitigations are active | high | 1 | host | manual | inventory + live + boot | 4.1 | R8 | SC-39, SI-16 | 3.13.4 | 2.2.6 | 000138-GPOS-00069 |
+| SA-15.02 | SMT is off where CPU flaws require it | medium | 2 | host | manual | live + boot | 4.1 | R8 | SC-39, SC-4 | 3.13.4 | 2.2.6 | 000138-GPOS-00069 |
+| SA-15.03 | CPU microcode updates are installed | high | 1 | host | manual | inventory | 7.3 | R61 | SI-2 | 3.14.1 | 6.3.3 | 000191-GPOS-00080 |
+| SA-15.04 | The IOMMU is active | medium | 2 | host | manual | live + boot | 4.1 | R7 | SC-39, AC-3 | 3.13.4 | 2.2.6 | 000134-GPOS-00068 |
+| SA-15.05 | Thunderbolt ports do not grant DMA to any device | medium | 2 | host | manual | resolved config | 10.3 | R2, R7 | AC-19, SC-41 | 3.8.7 | 2.2.6 | 000378-GPOS-00163 |
+| SA-15.06 | FireWire cannot be used | medium | 2 | host | auto | live + boot | 10.3 | R10 | CM-7, SC-41 | 3.8.7 | 2.2.4 | 000378-GPOS-00163 |
+| SA-15.07 | A TPM 2.0 is available | low | 2 | host | manual | inventory | 4.1 | R1 | SC-12, SI-7 | 3.13.10 | 3.6.1 | 000366-GPOS-00153 |
+| SA-15.08 | The BMC refuses unauthenticated IPMI sessions | high | 1 | host | manual | resolved config | 4.6, 12.3 | R1 | IA-2, AC-17, MA-4 | 3.5.2, 3.7.5 | 2.2.2, 8.3.1 | 000125-GPOS-00065 |
+| SA-15.09 | No firmware update is pending | medium | 2 | host | manual | inventory | 7.3 | R61 | SI-2 | 3.14.1 | 6.3.3 | 000191-GPOS-00080 |
+| SA-15.10 | USBGuard only allows known USB devices | low | 2 | host | manual | resolved config + live + boot | 10.3 |  | CM-7, IA-3 | 3.8.7 | 2.2.6 | 000378-GPOS-00163 |
 
 STIG column: `SRG-OS-` prefix omitted.

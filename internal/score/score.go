@@ -86,10 +86,12 @@ func Compute(controls []model.ControlResult, weights map[string]float64, lens st
 	sum := one(in, weights)
 	sum.Lens = lens
 	pillarIDs := map[int]bool{}
+	last := 0
 	for _, c := range in {
 		pillarIDs[c.Pillar] = true
+		last = max(last, c.Pillar)
 	}
-	for id := 1; id <= 12; id++ {
+	for id := 1; id <= last; id++ {
 		if !pillarIDs[id] {
 			continue
 		}

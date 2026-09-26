@@ -43,7 +43,7 @@ A sysctl checked only in `/proc/sys` would prove *running now* and leave *after 
 - **swap encryption**: active swap areas and the swap `/etc/fstab` activates at boot (crypttab, zram);
 - **kernel updates**: the running kernel and the newest installed one.
 
-A handful of controls remain honestly live-only (only the listening sockets, today): nothing on disk says which ports the next boot opens. Their PASS is qualified *runtime-only* until a scan after a reboot proves it.
+A handful of controls remain honestly live-only: the listening sockets (nothing on disk says which ports the next boot opens), what local TLS endpoints negotiate and present to a client, and the options and owner of running database processes. Their PASS is qualified *runtime-only* until a scan after a reboot proves it.
 
 ## 3. The qualified verdict
 
@@ -120,7 +120,7 @@ The points are 100 (no control failed), an A on arithmetic alone, but the A rest
 
 ## 7. Pillars and standard lenses
 
-- Each of the 12 pillars is graded with the same formula on its own controls.
+- Each pillar is graded with the same formula on its own controls.
 - A **lens** re-grades a scan through one standard: only the controls mapped to that standard count (`--lens cis|anssi|nist|nist171|pci|stig`, or the lens buttons of the HTML report). `--standard` additionally restricts *which controls run*.
 
 ## 8. Levels

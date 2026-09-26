@@ -1,5 +1,5 @@
 # Shadow-Armor developer tasks. Users never need this: download the release binary.
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.4.0-dev)
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.5.0-dev)
 COMMIT  ?= $(shell git rev-parse HEAD 2>/dev/null)
 DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -s -w -X github.com/Shadow-Security-official/Shadow-Armor/internal/version.Version=$(VERSION:v%=%) \
