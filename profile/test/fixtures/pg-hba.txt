@@ -1,0 +1,7 @@
+local|all|all||trust|117
+host|all|all|127.0.0.1|trust|119
+host|all|all|::1|trust|121
+local|replication|all||trust|124
+host|replication|all|127.0.0.1|trust|125
+host|replication|all|::1|trust|126
+host|all|all|all|scram-sha-256|128

@@ -1,0 +1,30 @@
+name: withdraw
+
+# Withdraw published releases: the release, its assets and its tag are deleted.
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Releases to withdraw, space-separated (vX.Y.Z)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  withdraw:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # delete releases and tags
+    steps:
+      - name: Delete the releases and their tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAGS: ${{ inputs.tags }}
+        run: |
+          for t in $TAGS; do
+            [[ "$t" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::not a release tag: $t"; exit 1; }
+            gh release delete "$t" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || echo "no release $t"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$t" >/dev/null 2>&1 || true
+            echo "withdrawn: $t"
+          done

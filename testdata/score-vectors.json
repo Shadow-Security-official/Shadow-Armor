@@ -1,0 +1,1264 @@
+[
+  {
+    "name": "all pass is A",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-06.01",
+        "severity": "critical",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 6,
+        "map": {
+          "pci": [
+            "2.2.6"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "A",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "runtime-only pass caps at B",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "runtime-only",
+        "pillar": 1,
+        "map": {}
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "B",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "critical failure caps at D even with a high score",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-08.02",
+        "severity": "critical",
+        "status": "fail",
+        "pillar": 8,
+        "map": {}
+      },
+      {
+        "id": "X1",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X2",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X3",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X4",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X5",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X6",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X7",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X8",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X9",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X10",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X11",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X12",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X13",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X14",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X15",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X16",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X17",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      },
+      {
+        "id": "X18",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": 90,
+      "grade": "D",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "errors count as failures, skip and waived are left out",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 3,
+        "map": {}
+      },
+      {
+        "id": "B",
+        "severity": "medium",
+        "status": "error",
+        "pillar": 3,
+        "map": {}
+      },
+      {
+        "id": "C",
+        "severity": "high",
+        "status": "skip",
+        "pillar": 3,
+        "map": {}
+      },
+      {
+        "id": "D",
+        "severity": "critical",
+        "status": "waived",
+        "pillar": 3,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": 50,
+      "grade": "D",
+      "raw_grade": "D"
+    }
+  },
+  {
+    "name": "weights: one high failure among low passes",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "low",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 4,
+        "map": {}
+      },
+      {
+        "id": "B",
+        "severity": "low",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 4,
+        "map": {}
+      },
+      {
+        "id": "C",
+        "severity": "low",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 5,
+        "map": {}
+      },
+      {
+        "id": "D",
+        "severity": "high",
+        "status": "fail",
+        "qualifier": "pending",
+        "pillar": 5,
+        "map": {}
+      },
+      {
+        "id": "E",
+        "severity": "info",
+        "status": "fail",
+        "pillar": 5,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": 37.5,
+      "grade": "E",
+      "raw_grade": "E"
+    }
+  },
+  {
+    "name": "rounding to one decimal",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {}
+      },
+      {
+        "id": "B",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {}
+      },
+      {
+        "id": "C",
+        "severity": "medium",
+        "status": "fail",
+        "pillar": 1,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": 66.7,
+      "grade": "C",
+      "raw_grade": "C"
+    }
+  },
+  {
+    "name": "nothing evaluated is N/A",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "medium",
+        "status": "skip",
+        "pillar": 1,
+        "map": {}
+      }
+    ],
+    "want": {
+      "score": null,
+      "grade": "N/A",
+      "raw_grade": "N/A"
+    }
+  },
+  {
+    "name": "anssi lens only counts ANSSI-mapped controls",
+    "lens": "anssi",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "high",
+        "status": "fail",
+        "pillar": 6,
+        "map": {
+          "cis": [
+            "5.4"
+          ]
+        }
+      },
+      {
+        "id": "B",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 6,
+        "map": {
+          "anssi": [
+            "R79"
+          ]
+        }
+      },
+      {
+        "id": "C",
+        "severity": "low",
+        "status": "fail",
+        "pillar": 9,
+        "map": {
+          "anssi": [
+            "R31"
+          ],
+          "pci": [
+            "8.3.6"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 83.3,
+      "grade": "B",
+      "raw_grade": "B"
+    }
+  },
+  {
+    "name": "cis lens includes benchmark-title-only mappings",
+    "lens": "cis",
+    "controls": [
+      {
+        "id": "A",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 2,
+        "map": {
+          "cis_benchmark": "Ensure x"
+        }
+      },
+      {
+        "id": "B",
+        "severity": "medium",
+        "status": "fail",
+        "pillar": 2,
+        "map": {
+          "nist": [
+            "CM-7"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "A",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "an A that does not rest on a runtime-only pass is kept",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.04",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.05",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.06",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.07",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.08",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.09",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.10",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.11",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.12",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.13",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.14",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.15",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.16",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.17",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.18",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.19",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.20",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.21",
+        "severity": "low",
+        "status": "pass",
+        "qualifier": "runtime-only",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "A",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "a critical runtime-only pass always caps the A",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.04",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.05",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.06",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.07",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.08",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.09",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.10",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.11",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.12",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.13",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.14",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.15",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.16",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.17",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.18",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.19",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.20",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.21",
+        "severity": "critical",
+        "status": "pass",
+        "qualifier": "runtime-only",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "B",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "reboot-proven passes are durable",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "medium",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        },
+        "proof": {
+          "now": "proven",
+          "on_disk": "proven",
+          "reboot": "proven"
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "A",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "runtime-only pass needed for the A caps it",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.04",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.05",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.06",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.07",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.08",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.10",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "runtime-only",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 100,
+      "grade": "B",
+      "raw_grade": "A"
+    }
+  },
+  {
+    "name": "the same control failing is not better (monotonic)",
+    "lens": "all",
+    "controls": [
+      {
+        "id": "SA-01.01",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.02",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.03",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.04",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.05",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.06",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.07",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.08",
+        "severity": "high",
+        "status": "pass",
+        "qualifier": "durable",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      },
+      {
+        "id": "SA-01.10",
+        "severity": "high",
+        "status": "fail",
+        "qualifier": "",
+        "pillar": 1,
+        "map": {
+          "cis": [
+            "4.1"
+          ]
+        }
+      }
+    ],
+    "want": {
+      "score": 88.9,
+      "grade": "B",
+      "raw_grade": "B"
+    }
+  }
+]

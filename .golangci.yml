@@ -1,0 +1,25 @@
+version: "2"
+linters:
+  default: standard
+  enable:
+    - misspell
+    - bodyclose
+    - gosec
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.WriteString
+        - os.RemoveAll
+        - (*text/tabwriter.Writer).Flush
+    gosec:
+      excludes:
+        - G204 # subprocesses are the point: engine, ssh, docker, cinc-client
+        - G304 # reading files named by the user is the point
+        - G306 # reports are written 0600 on purpose; exports 0644 on purpose
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [gosec, errcheck]

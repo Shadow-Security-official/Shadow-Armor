@@ -1,0 +1,8 @@
+{
+  "sdw_password_min_length": 14,
+  "sdw_password_history": 24,
+  "sdw_lockout_deny_max": 5,
+  "sdw_lockout_unlock_min": 900,
+  "sdw_inactive_days_max": 45,
+  "sdw_password_max_days": 365
+}

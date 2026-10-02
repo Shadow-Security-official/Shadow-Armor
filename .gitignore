@@ -1,0 +1,6 @@
+/dist/
+/sdw-armor
+*.test
+/coverage.out
+/.cache/
+/profile/inspec.lock
